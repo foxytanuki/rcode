@@ -8,7 +8,14 @@ BUILD_DIR=bin
 INSTALL_DIR=/usr/local/bin
 
 # Go parameters
-GOCMD=mise exec -- go
+# Check if mise is available, otherwise use go directly
+MISE_EXISTS := $(shell command -v mise 2> /dev/null)
+ifdef MISE_EXISTS
+    GOCMD=mise exec -- go
+else
+    GOCMD=go
+endif
+
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
