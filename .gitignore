@@ -70,13 +70,14 @@ tmp/
 .goreleaser.yml
 dist/
 
-# Project specific
-rcode
-rcode-server
-rcode-linux
-rcode-darwin
-rcode-server-darwin
-rcode-server-linux
+# Project specific binaries (only in root and bin/)
+/rcode
+/rcode-server
+/rcode-linux
+/rcode-darwin
+/rcode-server-darwin
+/rcode-server-linux
+/bin/rcode*
 
 # Backup files
 *.backup
