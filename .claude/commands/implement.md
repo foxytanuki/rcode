@@ -76,8 +76,8 @@ go test ./... -v
 go build ./...
 ```
 
-### 5. Task Completion Checklist
-Before marking a task complete, verify:
+### 5. Implementation Verification
+After implementation, verify:
 - [ ] All subtasks are implemented
 - [ ] Code compiles without errors
 - [ ] Tests pass successfully
@@ -85,12 +85,7 @@ Before marking a task complete, verify:
 - [ ] Documentation is complete
 - [ ] No TODO comments remain (unless intentional)
 
-### 6. Update TASK.md
-After successful implementation:
-- Mark completed tasks with [x]
-- Update progress percentages
-- Add any new discovered tasks if needed
-- Note any deviations from original plan
+Note: Task completion status in TASK.md should be updated using the `/review` command after implementation is verified.
 
 ## Implementation Templates
 
@@ -218,7 +213,7 @@ After completing the implementation, provide:
 1. List of files created/modified
 2. Key implementation decisions made
 3. Any deviations from original specification
-4. Test coverage percentage
+4. Test results summary
 5. Next recommended tasks
 
 ## Notes
@@ -227,8 +222,9 @@ After completing the implementation, provide:
 - Documentation can be minimal but must be accurate
 - Follow the project's established patterns
 - Ask for clarification if specifications are unclear
+- Use `/review` command to update task completion status in TASK.md
 
-Implement the requested task(s) systematically, ensuring each component is complete and tested before moving to the next.
+Implement the requested task(s) systematically, ensuring each component is complete and tested before proceeding.
 ```
 
 ## Task Selection Logic
@@ -239,6 +235,6 @@ Implement the requested task(s) systematically, ensuring each component is compl
 
 ## Important
 - Always run tests after implementation
-- Update TASK.md only after successful completion
 - Create feature branches for significant changes
 - Commit with descriptive messages
+- Use `/review` command to verify and update task completion status
