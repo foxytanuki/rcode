@@ -34,7 +34,7 @@ var (
 
 // ErrorResponse represents an error response from the API
 type ErrorResponse struct {
-	Error     string `json:"error" yaml:"error"`         // Error message
+	Message   string `json:"error" yaml:"error"`         // Error message
 	Code      string `json:"code" yaml:"code"`           // Error code for programmatic handling
 	Details   string `json:"details" yaml:"details"`     // Additional error details
 	Timestamp int64  `json:"timestamp" yaml:"timestamp"` // Unix timestamp
@@ -43,15 +43,15 @@ type ErrorResponse struct {
 // Error implements the error interface
 func (e *ErrorResponse) Error() string {
 	if e.Details != "" {
-		return fmt.Sprintf("%s: %s", e.Error, e.Details)
+		return fmt.Sprintf("%s: %s", e.Message, e.Details)
 	}
-	return e.Error
+	return e.Message
 }
 
 // NewErrorResponse creates a new error response
 func NewErrorResponse(err error, code string, details string) *ErrorResponse {
 	return &ErrorResponse{
-		Error:     err.Error(),
+		Message:   err.Error(),
 		Code:      code,
 		Details:   details,
 		Timestamp: timeNow().Unix(),

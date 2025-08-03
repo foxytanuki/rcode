@@ -16,7 +16,7 @@ func TestErrorResponse_Error(t *testing.T) {
 		{
 			name: "error with details",
 			response: ErrorResponse{
-				Error:   "test error",
+				Message: "test error",
 				Details: "additional information",
 			},
 			want: "test error: additional information",
@@ -24,7 +24,7 @@ func TestErrorResponse_Error(t *testing.T) {
 		{
 			name: "error without details",
 			response: ErrorResponse{
-				Error: "test error",
+				Message: "test error",
 			},
 			want: "test error",
 		},
@@ -52,8 +52,8 @@ func TestNewErrorResponse(t *testing.T) {
 
 	resp := NewErrorResponse(err, code, details)
 
-	if resp.Error != err.Error() {
-		t.Errorf("NewErrorResponse().Error = %v, want %v", resp.Error, err.Error())
+	if resp.Message != err.Error() {
+		t.Errorf("NewErrorResponse().Message = %v, want %v", resp.Message, err.Error())
 	}
 	if resp.Code != code {
 		t.Errorf("NewErrorResponse().Code = %v, want %v", resp.Code, code)
