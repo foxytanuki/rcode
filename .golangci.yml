@@ -1,4 +1,5 @@
-version: 2
+# golangci-lint v2 configuration
+version: "2"
 
 run:
   timeout: 5m
@@ -21,46 +22,46 @@ linters:
     - revive
     - unconvert
 
-linters-settings:
-  gocyclo:
-    min-complexity: 15
-  
-  dupl:
-    threshold: 100
-  
-  errcheck:
-    check-type-assertions: true
-  
-  misspell:
-    locale: US
-  
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - performance
-      - style
-    disabled-checks:
-      - commentFormatting
-      - ifElseChain
-  
-  revive:
-    rules:
-      - name: var-naming
-        disabled: true
-      - name: exported
-        disabled: false
+# Settings for specific linters
+linters.settings.gocyclo:
+  min-complexity: 15
 
-issues:
-  exclude-rules:
-    # Exclude test files from some linters
-    - path: _test\.go
-      linters:
-        - gosec
-        - dupl
-        - errcheck
-    
-    # Ignore missing comments for exported types in internal packages
-    - path: internal/.*\.go
-      text: "exported .* should have comment"
-      linters:
-        - revive
+linters.settings.dupl:
+  threshold: 100
+
+linters.settings.errcheck:
+  check-type-assertions: true
+
+linters.settings.misspell:
+  locale: US
+
+linters.settings.gocritic:
+  enabled-tags:
+    - diagnostic
+    - performance
+    - style
+  disabled-checks:
+    - commentFormatting
+    - ifElseChain
+
+linters.settings.revive:
+  rules:
+    - name: var-naming
+      disabled: true
+    - name: exported
+      disabled: false
+
+# Issue exclusion rules
+issues.exclude.rules:
+  # Exclude test files from some linters
+  - path: _test\.go
+    linters:
+      - gosec
+      - dupl
+      - errcheck
+  
+  # Ignore missing comments for exported types in internal packages
+  - path: internal/.*\.go
+    text: "exported .* should have comment"
+    linters:
+      - revive
