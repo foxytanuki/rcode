@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+//nolint:gocyclo // Test function covers multiple scenarios
 func TestExtractSSHInfo(t *testing.T) {
 	tests := []struct {
 		name    string

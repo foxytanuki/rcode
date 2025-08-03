@@ -224,6 +224,6 @@ func (s SSHInfo) String() string {
 }
 
 // IsValid checks if the SSH info contains minimum required information
-func (s SSHInfo) IsValid() bool {
+func (s *SSHInfo) IsValid() bool {
 	return s.User != "" && s.Host != ""
 }

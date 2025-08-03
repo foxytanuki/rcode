@@ -35,7 +35,7 @@ func TestHandleHealth(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, "/health", nil)
+			req := httptest.NewRequest(tt.method, "/health", http.NoBody)
 			rec := httptest.NewRecorder()
 
 			server.handleHealth(rec, req)
@@ -65,7 +65,7 @@ func TestHandleHealth(t *testing.T) {
 func TestHandleEditors(t *testing.T) {
 	server := createTestServer()
 
-	req := httptest.NewRequest(http.MethodGet, "/editors", nil)
+	req := httptest.NewRequest(http.MethodGet, "/editors", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	server.handleEditors(rec, req)

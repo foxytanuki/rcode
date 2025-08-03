@@ -159,15 +159,16 @@ func (e *Executor) IsEditorAvailable(name string) bool {
 
 	// Check availability if not cached
 	for _, editor := range e.editors {
-		if editor.Name == name {
-			available := e.checkEditorAvailability(editor)
-
-			e.availabilityMu.Lock()
-			e.availability[name] = available
-			e.availabilityMu.Unlock()
-
-			return available
+		if editor.Name != name {
+			continue
 		}
+		available := e.checkEditorAvailability(editor)
+
+		e.availabilityMu.Lock()
+		e.availability[name] = available
+		e.availabilityMu.Unlock()
+
+		return available
 	}
 
 	return false

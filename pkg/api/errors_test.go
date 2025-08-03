@@ -178,7 +178,7 @@ func TestIsNetworkError(t *testing.T) {
 
 func TestErrorMessages(t *testing.T) {
 	// Test that all error messages are properly defined
-	errors := []error{
+	errs := []error{
 		ErrInvalidPath,
 		ErrMissingUser,
 		ErrMissingHost,
@@ -197,7 +197,7 @@ func TestErrorMessages(t *testing.T) {
 		ErrRateLimited,
 	}
 
-	for _, err := range errors {
+	for _, err := range errs {
 		if err == nil {
 			t.Error("Error variable is nil")
 			continue

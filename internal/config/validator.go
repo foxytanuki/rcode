@@ -34,6 +34,8 @@ func (e ValidationErrors) Error() string {
 }
 
 // ValidateServerConfig validates server configuration
+//
+//nolint:gocyclo // Validation requires checking multiple fields
 func ValidateServerConfig(config *ServerConfigFile) error {
 	var errors ValidationErrors
 

@@ -233,14 +233,14 @@ func ValidateVars(vars TemplateVars) error {
 }
 
 // ParseCommand parses a command string into executable and arguments
-func ParseCommand(command string) (string, []string) {
+func ParseCommand(command string) (executable string, args []string) {
 	parts := strings.Fields(command)
 	if len(parts) == 0 {
 		return "", nil
 	}
 
-	executable := parts[0]
-	args := parts[1:]
+	executable = parts[0]
+	args = parts[1:]
 
 	return executable, args
 }

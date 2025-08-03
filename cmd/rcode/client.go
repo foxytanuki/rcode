@@ -37,7 +37,7 @@ func NewClient(cfg *config.ClientConfig, log *logger.Logger) *Client {
 }
 
 // OpenEditor opens a file/directory in an editor on the host machine
-func (c *Client) OpenEditor(path string, editor string, sshInfo SSHInfo) error {
+func (c *Client) OpenEditor(path, editor string, sshInfo *SSHInfo) error {
 	// Use default editor if not specified
 	if editor == "" {
 		editor = c.config.DefaultEditor
@@ -140,34 +140,45 @@ func (c *Client) sendRequest(host string, req api.OpenRequest) error {
 			lastErr = fmt.Errorf("request failed: %w", err)
 			continue
 		}
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				c.log.Warn("Failed to close response body", "error", err)
+
+		// Process response - close body when done
+		func() {
+			defer func() {
+				if err := resp.Body.Close(); err != nil {
+					c.log.Warn("Failed to close response body", "error", err)
+				}
+			}()
+
+			// Check status code
+			if resp.StatusCode == http.StatusOK {
+				// Parse successful response
+				var openResp api.OpenResponse
+				if err := json.NewDecoder(resp.Body).Decode(&openResp); err != nil {
+					lastErr = fmt.Errorf("failed to decode response: %w", err)
+					return
+				}
+
+				c.log.Info("Editor opened successfully",
+					"editor", openResp.Editor,
+					"command", openResp.Command,
+				)
+
+				lastErr = nil
+				return
+			}
+
+			// Parse error response
+			var errResp api.ErrorResponse
+			if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
+				lastErr = fmt.Errorf("server returned status %d", resp.StatusCode)
+			} else {
+				lastErr = fmt.Errorf("server error: %s", errResp.Error())
 			}
 		}()
 
-		// Check status code
-		if resp.StatusCode == http.StatusOK {
-			// Parse successful response
-			var openResp api.OpenResponse
-			if err := json.NewDecoder(resp.Body).Decode(&openResp); err != nil {
-				return fmt.Errorf("failed to decode response: %w", err)
-			}
-
-			c.log.Info("Editor opened successfully",
-				"editor", openResp.Editor,
-				"command", openResp.Command,
-			)
-
+		// If successful, return immediately
+		if lastErr == nil {
 			return nil
-		}
-
-		// Parse error response
-		var errResp api.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
-			lastErr = fmt.Errorf("server returned status %d", resp.StatusCode)
-		} else {
-			lastErr = fmt.Errorf("server error: %s", errResp.Error())
 		}
 	}
 
@@ -220,7 +231,7 @@ func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
 	defer cancel()
 
 	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -253,7 +264,7 @@ func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
 }
 
 // GetManualCommand generates a manual command that can be run on the host
-func (c *Client) GetManualCommand(path string, editor string, sshInfo SSHInfo) string {
+func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string {
 	// Use default editor if not specified
 	if editor == "" {
 		editor = c.config.DefaultEditor
@@ -334,7 +345,7 @@ func (c *Client) checkHostHealth(host string) (bool, error) {
 	defer cancel()
 
 	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return false, fmt.Errorf("failed to create request: %w", err)
 	}

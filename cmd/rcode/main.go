@@ -21,6 +21,7 @@ func main() {
 	os.Exit(run())
 }
 
+//nolint:gocyclo // Main function handles multiple command-line flags
 func run() int {
 	// Parse command-line flags
 	var (
@@ -156,13 +157,13 @@ func run() int {
 	)
 
 	// Open the editor
-	err = client.OpenEditor(absPath, *editor, sshInfo)
+	err = client.OpenEditor(absPath, *editor, &sshInfo)
 	if err != nil {
 		// Show manual command as fallback
 		fmt.Fprintf(os.Stderr, "Failed to open editor: %v\n", err)
 
 		// Generate manual command
-		manualCmd := client.GetManualCommand(absPath, *editor, sshInfo)
+		manualCmd := client.GetManualCommand(absPath, *editor, &sshInfo)
 		if manualCmd != "" {
 			fmt.Fprintf(os.Stderr, "\nYou can try running this command manually on your host machine:\n")
 			fmt.Fprintf(os.Stderr, "  %s\n", manualCmd)

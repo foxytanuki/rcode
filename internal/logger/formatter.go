@@ -49,6 +49,8 @@ func (h *TextHandler) Enabled(_ context.Context, level slog.Level) bool {
 }
 
 // Handle formats and writes the log record
+//
+//nolint:gocritic // slog.Handler interface requires value receiver
 func (h *TextHandler) Handle(_ context.Context, r slog.Record) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -215,6 +217,8 @@ func NewJSONFormatter(pretty bool) *JSONFormatter {
 }
 
 // Format formats a log record as JSON
+//
+//nolint:gocritic // slog.Record is part of standard library interface
 func (f *JSONFormatter) Format(_ slog.Record) string {
 	// This would be used if we need custom JSON formatting
 	// For now, we'll use the built-in slog.JSONHandler

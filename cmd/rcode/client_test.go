@@ -67,7 +67,7 @@ func TestClient_OpenEditor(t *testing.T) {
 		Host: "testhost",
 	}
 
-	err := client.OpenEditor("/test/path", "test-editor", sshInfo)
+	err := client.OpenEditor("/test/path", "test-editor", &sshInfo)
 	if err != nil {
 		t.Errorf("OpenEditor() error = %v, want nil", err)
 	}
@@ -123,7 +123,7 @@ func TestClient_OpenEditor_WithFallback(t *testing.T) {
 		Host: "testhost",
 	}
 
-	err := client.OpenEditor("/test/path", "", sshInfo)
+	err := client.OpenEditor("/test/path", "", &sshInfo)
 	if err != nil {
 		t.Errorf("OpenEditor() error = %v, want nil", err)
 	}
@@ -283,6 +283,7 @@ func TestClient_GetManualCommand(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Capture range variable
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.ClientConfig{
 				Editors: tt.editors,
@@ -292,7 +293,7 @@ func TestClient_GetManualCommand(t *testing.T) {
 			}
 
 			client := NewClient(cfg, createTestLogger())
-			got := client.GetManualCommand(tt.path, tt.editor, tt.sshInfo)
+			got := client.GetManualCommand(tt.path, tt.editor, &tt.sshInfo)
 
 			if got != tt.want {
 				t.Errorf("GetManualCommand() = %v, want %v", got, tt.want)
@@ -350,7 +351,7 @@ func TestClient_Retry(t *testing.T) {
 		Host: "testhost",
 	}
 
-	err := client.OpenEditor("/test/path", "", sshInfo)
+	err := client.OpenEditor("/test/path", "", &sshInfo)
 	if err != nil {
 		t.Errorf("OpenEditor() with retries error = %v, want nil", err)
 	}

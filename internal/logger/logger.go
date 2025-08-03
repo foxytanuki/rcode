@@ -238,6 +238,8 @@ func (h *MultiHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 // Handle handles the Record
+//
+//nolint:gocritic // slog.Handler interface requires value receiver
 func (h *MultiHandler) Handle(ctx context.Context, r slog.Record) error {
 	for _, handler := range h.handlers {
 		if err := handler.Handle(ctx, r); err != nil {

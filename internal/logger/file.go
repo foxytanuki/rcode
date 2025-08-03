@@ -45,7 +45,7 @@ func NewFileWriter(filename string, config *FileWriterConfig) (*FileWriter, erro
 
 	// Ensure directory exists
 	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0750); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %w", err)
 	}
 
@@ -108,7 +108,7 @@ func (fw *FileWriter) Close() error {
 // openFile opens the log file
 func (fw *FileWriter) openFile(filename string) error {
 	// Path is internally managed
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600) // #nosec G304
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600) // #nosec G304
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}

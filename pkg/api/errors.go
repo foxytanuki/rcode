@@ -50,7 +50,7 @@ func (e *ErrorResponse) Error() string {
 }
 
 // NewErrorResponse creates a new error response
-func NewErrorResponse(err error, code string, details string) *ErrorResponse {
+func NewErrorResponse(err error, code, details string) *ErrorResponse {
 	return &ErrorResponse{
 		Message:   err.Error(),
 		Code:      code,
@@ -80,6 +80,8 @@ const (
 )
 
 // GetErrorCode returns the appropriate error code for a given error
+//
+//nolint:gocyclo // Error code mapping requires multiple checks
 func GetErrorCode(err error) string {
 	switch {
 	case errors.Is(err, ErrInvalidPath):

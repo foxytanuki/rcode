@@ -29,19 +29,17 @@ func GetDefaultPaths() Paths {
 	}
 }
 
-// LoadServerConfig loads server configuration from file
-func LoadServerConfig(path string) (*ServerConfigFile, error) {
+// loadConfig is a generic function to load configuration from file
+func loadConfig(path, defaultPath string, createDefault func() error) ([]byte, error) {
 	if path == "" {
-		path = GetDefaultPaths().ServerConfig
+		path = defaultPath
 	}
 
 	// Create default config if file doesn't exist
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		config := GetDefaultServerConfig()
-		if err := SaveServerConfig(path, config); err != nil {
-			return config, fmt.Errorf("failed to save default config: %w", err)
+		if err := createDefault(); err != nil {
+			return nil, fmt.Errorf("failed to save default config: %w", err)
 		}
-		return config, nil
 	}
 
 	// Path is from user configuration or command-line argument
@@ -49,6 +47,25 @@ func LoadServerConfig(path string) (*ServerConfigFile, error) {
 	data, err := os.ReadFile(cleanPath) // #nosec G304
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	return data, nil
+}
+
+// LoadServerConfig loads server configuration from file
+func LoadServerConfig(path string) (*ServerConfigFile, error) {
+	defaultPath := GetDefaultPaths().ServerConfig
+
+	data, err := loadConfig(path, defaultPath, func() error {
+		config := GetDefaultServerConfig()
+		return SaveServerConfig(defaultPath, config)
+	})
+	if err != nil {
+		// If we failed to create default, return the default anyway
+		if os.IsNotExist(err) {
+			return GetDefaultServerConfig(), nil
+		}
+		return nil, err
 	}
 
 	var config ServerConfigFile
@@ -64,24 +81,18 @@ func LoadServerConfig(path string) (*ServerConfigFile, error) {
 
 // LoadClientConfig loads client configuration from file
 func LoadClientConfig(path string) (*ClientConfig, error) {
-	if path == "" {
-		path = GetDefaultPaths().ClientConfig
-	}
+	defaultPath := GetDefaultPaths().ClientConfig
 
-	// Create default config if file doesn't exist
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	data, err := loadConfig(path, defaultPath, func() error {
 		config := GetDefaultClientConfig()
-		if err := SaveClientConfig(path, config); err != nil {
-			return config, fmt.Errorf("failed to save default config: %w", err)
-		}
-		return config, nil
-	}
-
-	// Path is from user configuration or command-line argument
-	cleanPath := filepath.Clean(path)
-	data, err := os.ReadFile(cleanPath) // #nosec G304
+		return SaveClientConfig(defaultPath, config)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+		// If we failed to create default, return the default anyway
+		if os.IsNotExist(err) {
+			return GetDefaultClientConfig(), nil
+		}
+		return nil, err
 	}
 
 	var config ClientConfig
@@ -103,7 +114,7 @@ func SaveServerConfig(path string, config *ServerConfigFile) error {
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0750); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -112,7 +123,7 @@ func SaveServerConfig(path string, config *ServerConfigFile) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0600); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
@@ -127,7 +138,7 @@ func SaveClientConfig(path string, config *ClientConfig) error {
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0750); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -136,7 +147,7 @@ func SaveClientConfig(path string, config *ClientConfig) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0600); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
