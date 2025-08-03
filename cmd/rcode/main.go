@@ -152,14 +152,14 @@ func main() {
 	if err != nil {
 		// Show manual command as fallback
 		fmt.Fprintf(os.Stderr, "Failed to open editor: %v\n", err)
-		
+
 		// Generate manual command
 		manualCmd := client.GetManualCommand(absPath, *editor, sshInfo)
 		if manualCmd != "" {
 			fmt.Fprintf(os.Stderr, "\nYou can try running this command manually on your host machine:\n")
 			fmt.Fprintf(os.Stderr, "  %s\n", manualCmd)
 		}
-		
+
 		os.Exit(1)
 	}
 
@@ -178,14 +178,14 @@ func showConfiguration(cfg *config.ClientConfig) {
 	fmt.Printf("  Timeout: %v\n", cfg.Network.Timeout)
 	fmt.Printf("  Retry Attempts: %d\n", cfg.Network.RetryAttempts)
 	fmt.Printf("\nDefault Editor: %s\n", cfg.DefaultEditor)
-	
+
 	if len(cfg.Editors) > 0 {
 		fmt.Printf("\nConfigured Editors:\n")
 		for _, editor := range cfg.Editors {
 			fmt.Printf("  - %s: %s\n", editor.Name, editor.Command)
 		}
 	}
-	
+
 	fmt.Printf("\nLogging:\n")
 	fmt.Printf("  Level: %s\n", cfg.Logging.Level)
 	fmt.Printf("  File: %s\n", cfg.Logging.File)

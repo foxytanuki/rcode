@@ -71,11 +71,11 @@ func TestNewTemplate(t *testing.T) {
 
 func TestTemplate_Render(t *testing.T) {
 	tests := []struct {
-		name     string
-		command  string
-		vars     TemplateVars
-		want     string
-		wantErr  bool
+		name    string
+		command string
+		vars    TemplateVars
+		want    string
+		wantErr bool
 	}{
 		{
 			name:    "all variables",

@@ -15,10 +15,10 @@ var (
 
 // Template represents a command template with placeholders
 type Template struct {
-	raw         string
-	hasUser     bool
-	hasHost     bool
-	hasPath     bool
+	raw          string
+	hasUser      bool
+	hasHost      bool
+	hasPath      bool
 	placeholders []string
 }
 

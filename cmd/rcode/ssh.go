@@ -202,7 +202,7 @@ func GetRemoteInfo() map[string]string {
 	info["USER"] = os.Getenv("USER")
 	info["LOGNAME"] = os.Getenv("LOGNAME")
 	info["HOME"] = os.Getenv("HOME")
-	
+
 	hostname, err := os.Hostname()
 	if err == nil {
 		info["HOSTNAME"] = hostname

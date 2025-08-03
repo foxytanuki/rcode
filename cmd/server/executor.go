@@ -23,9 +23,9 @@ var (
 
 // Executor handles editor command execution
 type Executor struct {
-	editors       []config.EditorConfig
-	log           *logger.Logger
-	availability  map[string]bool
+	editors        []config.EditorConfig
+	log            *logger.Logger
+	availability   map[string]bool
 	availabilityMu sync.RWMutex
 }
 
@@ -36,10 +36,10 @@ func NewExecutor(editors []config.EditorConfig, log *logger.Logger) *Executor {
 		log:          log,
 		availability: make(map[string]bool),
 	}
-	
+
 	// Check editor availability on startup
 	e.checkAllEditorsAvailability()
-	
+
 	return e
 }
 
@@ -47,7 +47,7 @@ func NewExecutor(editors []config.EditorConfig, log *logger.Logger) *Executor {
 func (e *Executor) OpenEditor(editorName, user, host, path string) (string, error) {
 	// Find the editor configuration
 	var editor *config.EditorConfig
-	
+
 	if editorName == "" {
 		// Use default editor
 		editor = e.getDefaultEditor()
@@ -67,7 +67,7 @@ func (e *Executor) OpenEditor(editorName, user, host, path string) (string, erro
 			return "", ErrEditorNotFound
 		}
 	}
-	
+
 	// Check if editor is available
 	if !e.IsEditorAvailable(editor.Name) {
 		e.log.Warn("Editor not available",
@@ -75,10 +75,10 @@ func (e *Executor) OpenEditor(editorName, user, host, path string) (string, erro
 			"command", editor.Command,
 		)
 	}
-	
+
 	// Build command from template
 	command := e.buildCommand(editor.Command, user, host, path)
-	
+
 	// Log the command
 	e.log.Debug("Executing editor command",
 		"editor", editor.Name,
@@ -87,19 +87,19 @@ func (e *Executor) OpenEditor(editorName, user, host, path string) (string, erro
 		"host", host,
 		"path", path,
 	)
-	
+
 	// Execute the command
 	if err := e.executeCommand(command); err != nil {
 		return command, fmt.Errorf("%w: %v", ErrCommandExecution, err)
 	}
-	
+
 	e.log.Info("Successfully opened editor",
 		"editor", editor.Name,
 		"path", path,
 		"user", user,
 		"host", host,
 	)
-	
+
 	return command, nil
 }
 
@@ -119,30 +119,30 @@ func (e *Executor) executeCommand(command string) error {
 	if len(parts) == 0 {
 		return errors.New("empty command")
 	}
-	
+
 	executable := parts[0]
 	args := parts[1:]
-	
+
 	// Create command
 	cmd := exec.Command(executable, args...)
-	
+
 	// For GUI applications, we want to detach from the parent process
 	// so the server doesn't wait for the editor to close
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	cmd.Stdin = nil
-	
+
 	// Start the command without waiting for it to complete
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start command: %w", err)
 	}
-	
+
 	// Detach the process
 	if err := cmd.Process.Release(); err != nil {
 		// Non-critical error, log but don't fail
 		e.log.Warn("Failed to release process", "error", err)
 	}
-	
+
 	return nil
 }
 
@@ -151,24 +151,24 @@ func (e *Executor) IsEditorAvailable(name string) bool {
 	e.availabilityMu.RLock()
 	available, exists := e.availability[name]
 	e.availabilityMu.RUnlock()
-	
+
 	if exists {
 		return available
 	}
-	
+
 	// Check availability if not cached
 	for _, editor := range e.editors {
 		if editor.Name == name {
 			available := e.checkEditorAvailability(editor)
-			
+
 			e.availabilityMu.Lock()
 			e.availability[name] = available
 			e.availabilityMu.Unlock()
-			
+
 			return available
 		}
 	}
-	
+
 	return false
 }
 
@@ -179,19 +179,19 @@ func (e *Executor) checkEditorAvailability(editor config.EditorConfig) bool {
 	if len(parts) == 0 {
 		return false
 	}
-	
+
 	executable := parts[0]
-	
+
 	// Check if the executable exists in PATH
 	_, err := exec.LookPath(executable)
 	available := err == nil
-	
+
 	e.log.Debug("Checked editor availability",
 		"editor", editor.Name,
 		"executable", executable,
 		"available", available,
 	)
-	
+
 	return available
 }
 
@@ -199,11 +199,11 @@ func (e *Executor) checkEditorAvailability(editor config.EditorConfig) bool {
 func (e *Executor) checkAllEditorsAvailability() {
 	e.availabilityMu.Lock()
 	defer e.availabilityMu.Unlock()
-	
+
 	for _, editor := range e.editors {
 		available := e.checkEditorAvailability(editor)
 		e.availability[editor.Name] = available
-		
+
 		if available {
 			e.log.Info("Editor available",
 				"editor", editor.Name,
@@ -226,19 +226,19 @@ func (e *Executor) getDefaultEditor() *config.EditorConfig {
 			return &e.editors[i]
 		}
 	}
-	
+
 	// Then, return first available editor
 	for i := range e.editors {
 		if e.IsEditorAvailable(e.editors[i].Name) {
 			return &e.editors[i]
 		}
 	}
-	
+
 	// Finally, return first editor if any exist
 	if len(e.editors) > 0 {
 		return &e.editors[0]
 	}
-	
+
 	return nil
 }
 
@@ -256,14 +256,14 @@ func (e *Executor) GetEditors() []config.EditorConfig {
 // This is useful for testing or advanced use cases
 func (e *Executor) ExecuteCustomCommand(commandTemplate, user, host, path string) error {
 	command := e.buildCommand(commandTemplate, user, host, path)
-	
+
 	e.log.Debug("Executing custom command",
 		"command", command,
 		"user", user,
 		"host", host,
 		"path", path,
 	)
-	
+
 	return e.executeCommand(command)
 }
 
@@ -272,16 +272,16 @@ func (e *Executor) ValidateEditorConfig(editor config.EditorConfig) error {
 	if editor.Name == "" {
 		return errors.New("editor name cannot be empty")
 	}
-	
+
 	if editor.Command == "" {
 		return errors.New("editor command cannot be empty")
 	}
-	
+
 	// Check that command contains required placeholder
 	if !strings.Contains(editor.Command, "{path}") {
 		return errors.New("editor command must contain {path} placeholder")
 	}
-	
+
 	return nil
 }
 

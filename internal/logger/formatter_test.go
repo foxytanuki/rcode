@@ -31,7 +31,7 @@ func TestTextHandler(t *testing.T) {
 				Level:      slog.LevelInfo,
 				TimeFormat: time.RFC3339,
 			},
-			record: makeRecordWithAttrs(slog.LevelInfo, "test", 
+			record: makeRecordWithAttrs(slog.LevelInfo, "test",
 				slog.String("key", "value"),
 				slog.Int("count", 42),
 			),
@@ -113,7 +113,7 @@ func TestTextHandlerWithAttrs(t *testing.T) {
 
 	newHandler := handler.WithAttrs(attrs)
 	record := makeRecord(slog.LevelInfo, "test message")
-	
+
 	err := newHandler.Handle(context.Background(), record)
 	if err != nil {
 		t.Errorf("Handle() error = %v", err)
@@ -139,7 +139,7 @@ func TestTextHandlerWithGroup(t *testing.T) {
 		slog.String("method", "GET"),
 		slog.String("path", "/api"),
 	)
-	
+
 	err := groupHandler.Handle(context.Background(), record)
 	if err != nil {
 		t.Errorf("Handle() error = %v", err)

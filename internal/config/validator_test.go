@@ -305,7 +305,7 @@ func TestValidationError(t *testing.T) {
 		Field:   "test.field",
 		Message: "test message",
 	}
-	
+
 	expected := "config validation error: test.field - test message"
 	if err.Error() != expected {
 		t.Errorf("ValidationError.Error() = %q, want %q", err.Error(), expected)
@@ -317,7 +317,7 @@ func TestValidationErrors(t *testing.T) {
 		{Field: "field1", Message: "error1"},
 		{Field: "field2", Message: "error2"},
 	}
-	
+
 	errStr := errors.Error()
 	if !strings.Contains(errStr, "field1") || !strings.Contains(errStr, "error1") {
 		t.Errorf("ValidationErrors.Error() missing field1 error: %s", errStr)
@@ -325,7 +325,7 @@ func TestValidationErrors(t *testing.T) {
 	if !strings.Contains(errStr, "field2") || !strings.Contains(errStr, "error2") {
 		t.Errorf("ValidationErrors.Error() missing field2 error: %s", errStr)
 	}
-	
+
 	// Test empty errors
 	emptyErrors := ValidationErrors{}
 	if emptyErrors.Error() != "" {

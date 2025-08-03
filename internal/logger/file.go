@@ -15,12 +15,12 @@ import (
 
 // FileWriter implements io.Writer with rotation support
 type FileWriter struct {
-	config     *FileWriterConfig
-	file       *os.File
-	size       int64
-	mu         sync.Mutex
-	millCh     chan struct{}
-	startMill  sync.Once
+	config    *FileWriterConfig
+	file      *os.File
+	size      int64
+	mu        sync.Mutex
+	millCh    chan struct{}
+	startMill sync.Once
 }
 
 // FileWriterConfig holds configuration for file writer
@@ -259,14 +259,14 @@ func GetTraceID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-	
+
 	// Check for trace ID in context
 	if traceID := ctx.Value("trace_id"); traceID != nil {
 		if s, ok := traceID.(string); ok {
 			return s
 		}
 	}
-	
+
 	// Generate a new trace ID if not found
 	return generateTraceID()
 }
@@ -287,7 +287,7 @@ func StripANSI(s string) string {
 	// Simple implementation - removes common ANSI escape sequences
 	var result strings.Builder
 	inEscape := false
-	
+
 	for _, ch := range s {
 		if ch == '\033' {
 			inEscape = true
@@ -299,6 +299,6 @@ func StripANSI(s string) string {
 			result.WriteRune(ch)
 		}
 	}
-	
+
 	return result.String()
 }

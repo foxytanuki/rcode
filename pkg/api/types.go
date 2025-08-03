@@ -39,10 +39,10 @@ type EditorsResponse struct {
 
 // HealthResponse represents the response from the /health endpoint
 type HealthResponse struct {
-	Status    string    `json:"status" yaml:"status"`       // "healthy" or "unhealthy"
-	Version   string    `json:"version" yaml:"version"`     // Server version
-	Uptime    int64     `json:"uptime" yaml:"uptime"`       // Uptime in seconds
-	Timestamp int64     `json:"timestamp" yaml:"timestamp"` // Unix timestamp
+	Status    string    `json:"status" yaml:"status"`         // "healthy" or "unhealthy"
+	Version   string    `json:"version" yaml:"version"`       // Server version
+	Uptime    int64     `json:"uptime" yaml:"uptime"`         // Uptime in seconds
+	Timestamp int64     `json:"timestamp" yaml:"timestamp"`   // Unix timestamp
 	StartedAt time.Time `json:"started_at" yaml:"started_at"` // Server start time
 }
 

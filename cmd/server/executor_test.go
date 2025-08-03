@@ -10,7 +10,7 @@ import (
 
 func TestBuildCommand(t *testing.T) {
 	executor := createTestExecutor()
-	
+
 	tests := []struct {
 		name     string
 		template string
@@ -52,7 +52,7 @@ func TestBuildCommand(t *testing.T) {
 			want:     "static command",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := executor.buildCommand(tt.template, tt.user, tt.host, tt.path)
@@ -101,7 +101,7 @@ func TestGetDefaultEditor(t *testing.T) {
 			want:    "",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			executor := &Executor{
@@ -109,12 +109,12 @@ func TestGetDefaultEditor(t *testing.T) {
 				log:          createTestLogger(),
 				availability: make(map[string]bool),
 			}
-			
+
 			// Set availability based on Available field
 			for _, editor := range tt.editors {
 				executor.availability[editor.Name] = editor.Available
 			}
-			
+
 			editor := executor.getDefaultEditor()
 			if tt.want == "" {
 				if editor != nil {
@@ -133,7 +133,7 @@ func TestGetDefaultEditor(t *testing.T) {
 
 func TestValidateEditorConfig(t *testing.T) {
 	executor := createTestExecutor()
-	
+
 	tests := []struct {
 		name    string
 		editor  config.EditorConfig
@@ -176,7 +176,7 @@ func TestValidateEditorConfig(t *testing.T) {
 			errMsg:  "must contain {path}",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := executor.ValidateEditorConfig(tt.editor)
@@ -197,13 +197,13 @@ func TestValidateEditorConfig(t *testing.T) {
 
 func TestIsEditorAvailable(t *testing.T) {
 	executor := createTestExecutor()
-	
+
 	// Mock availability
 	executor.availability["available"] = true
 	executor.availability["unavailable"] = false
-	
+
 	tests := []struct {
-		name string
+		name   string
 		editor string
 		want   bool
 	}{
@@ -211,7 +211,7 @@ func TestIsEditorAvailable(t *testing.T) {
 		{"unavailable editor", "unavailable", false},
 		{"unknown editor", "unknown", false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := executor.IsEditorAvailable(tt.editor)
@@ -224,7 +224,7 @@ func TestIsEditorAvailable(t *testing.T) {
 
 func TestOpenEditor(t *testing.T) {
 	executor := createTestExecutor()
-	
+
 	// Add a test editor that uses echo command (should be available on most systems)
 	executor.editors = []config.EditorConfig{
 		{
@@ -242,7 +242,7 @@ func TestOpenEditor(t *testing.T) {
 	}
 	executor.availability["echo-editor"] = true
 	executor.availability["unknown-editor"] = false
-	
+
 	tests := []struct {
 		name       string
 		editorName string
@@ -276,11 +276,11 @@ func TestOpenEditor(t *testing.T) {
 			wantErr:    true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			command, err := executor.OpenEditor(tt.editorName, tt.user, tt.host, tt.path)
-			
+
 			if tt.wantErr {
 				if err == nil {
 					t.Error("OpenEditor() error = nil, want error")
@@ -307,7 +307,7 @@ func createTestExecutor() *Executor {
 			Available: true,
 		},
 	}
-	
+
 	return NewExecutor(editors, createTestLogger())
 }
 

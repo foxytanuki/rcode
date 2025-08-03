@@ -15,7 +15,7 @@ import (
 
 func TestHandleHealth(t *testing.T) {
 	server := createTestServer()
-	
+
 	tests := []struct {
 		name       string
 		method     string
@@ -32,28 +32,28 @@ func TestHandleHealth(t *testing.T) {
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(tt.method, "/health", nil)
 			rec := httptest.NewRecorder()
-			
+
 			server.handleHealth(rec, req)
-			
+
 			if rec.Code != tt.wantStatus {
 				t.Errorf("handleHealth() status = %v, want %v", rec.Code, tt.wantStatus)
 			}
-			
+
 			if tt.wantStatus == http.StatusOK {
 				var resp api.HealthResponse
 				if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 					t.Errorf("Failed to decode response: %v", err)
 				}
-				
+
 				if resp.Status != "healthy" {
 					t.Errorf("Health status = %v, want healthy", resp.Status)
 				}
-				
+
 				if resp.Version != Version {
 					t.Errorf("Version = %v, want %v", resp.Version, Version)
 				}
@@ -64,25 +64,25 @@ func TestHandleHealth(t *testing.T) {
 
 func TestHandleEditors(t *testing.T) {
 	server := createTestServer()
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/editors", nil)
 	rec := httptest.NewRecorder()
-	
+
 	server.handleEditors(rec, req)
-	
+
 	if rec.Code != http.StatusOK {
 		t.Errorf("handleEditors() status = %v, want %v", rec.Code, http.StatusOK)
 	}
-	
+
 	var resp api.EditorsResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Errorf("Failed to decode response: %v", err)
 	}
-	
+
 	if len(resp.Editors) == 0 {
 		t.Error("No editors returned")
 	}
-	
+
 	// Check for default editor
 	hasDefault := false
 	for _, editor := range resp.Editors {
@@ -93,7 +93,7 @@ func TestHandleEditors(t *testing.T) {
 			}
 		}
 	}
-	
+
 	if !hasDefault && resp.DefaultEditor == "" {
 		t.Error("No default editor configured")
 	}
@@ -101,7 +101,7 @@ func TestHandleEditors(t *testing.T) {
 
 func TestHandleOpenEditor(t *testing.T) {
 	server := createTestServer()
-	
+
 	tests := []struct {
 		name       string
 		method     string
@@ -146,7 +146,7 @@ func TestHandleOpenEditor(t *testing.T) {
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var body []byte
@@ -157,13 +157,13 @@ func TestHandleOpenEditor(t *testing.T) {
 					t.Fatalf("Failed to marshal request: %v", err)
 				}
 			}
-			
+
 			req := httptest.NewRequest(tt.method, "/open-editor", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			rec := httptest.NewRecorder()
-			
+
 			server.handleOpenEditor(rec, req)
-			
+
 			if rec.Code != tt.wantStatus {
 				t.Errorf("handleOpenEditor() status = %v, want %v", rec.Code, tt.wantStatus)
 			}
@@ -173,29 +173,29 @@ func TestHandleOpenEditor(t *testing.T) {
 
 func TestRespondJSON(t *testing.T) {
 	server := createTestServer()
-	
+
 	data := map[string]string{
 		"test": "value",
 		"foo":  "bar",
 	}
-	
+
 	rec := httptest.NewRecorder()
 	server.respondJSON(rec, http.StatusOK, data)
-	
+
 	if rec.Code != http.StatusOK {
 		t.Errorf("respondJSON() status = %v, want %v", rec.Code, http.StatusOK)
 	}
-	
+
 	contentType := rec.Header().Get("Content-Type")
 	if contentType != "application/json" {
 		t.Errorf("Content-Type = %v, want application/json", contentType)
 	}
-	
+
 	var result map[string]string
 	if err := json.NewDecoder(rec.Body).Decode(&result); err != nil {
 		t.Errorf("Failed to decode response: %v", err)
 	}
-	
+
 	if result["test"] != "value" || result["foo"] != "bar" {
 		t.Errorf("Unexpected response data: %v", result)
 	}
@@ -203,27 +203,27 @@ func TestRespondJSON(t *testing.T) {
 
 func TestRespondError(t *testing.T) {
 	server := createTestServer()
-	
+
 	rec := httptest.NewRecorder()
 	server.respondError(rec, api.ErrInvalidPath, http.StatusBadRequest, "test details")
-	
+
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("respondError() status = %v, want %v", rec.Code, http.StatusBadRequest)
 	}
-	
+
 	var resp api.ErrorResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Errorf("Failed to decode response: %v", err)
 	}
-	
+
 	if resp.Message != api.ErrInvalidPath.Error() {
 		t.Errorf("Error message = %v, want %v", resp.Message, api.ErrInvalidPath.Error())
 	}
-	
+
 	if resp.Details != "test details" {
 		t.Errorf("Error details = %v, want 'test details'", resp.Details)
 	}
-	
+
 	if resp.Code != api.CodeInvalidPath {
 		t.Errorf("Error code = %v, want %v", resp.Code, api.CodeInvalidPath)
 	}
@@ -258,11 +258,11 @@ func createTestServer() *Server {
 			Console: false,
 		},
 	}
-	
+
 	log := logger.New(&logger.Config{
 		Level:   "error", // Quiet logs for tests
 		Console: false,
 	})
-	
+
 	return NewServer(cfg, log)
 }

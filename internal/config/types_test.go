@@ -92,9 +92,9 @@ func TestConfig_GetEditor(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
+		name       string
 		editorName string
-		wantFound bool
+		wantFound  bool
 	}{
 		{"existing editor", "cursor", true},
 		{"non-existing editor", "sublime", false},
@@ -179,19 +179,19 @@ func TestDefaultConstants(t *testing.T) {
 	if DefaultServerPort < 1 || DefaultServerPort > 65535 {
 		t.Errorf("DefaultServerPort = %d, want valid port number", DefaultServerPort)
 	}
-	
+
 	if DefaultTimeout < time.Second {
 		t.Errorf("DefaultTimeout = %v, want at least 1 second", DefaultTimeout)
 	}
-	
+
 	if DefaultRetryAttempts < 1 {
 		t.Errorf("DefaultRetryAttempts = %d, want at least 1", DefaultRetryAttempts)
 	}
-	
+
 	if DefaultLogMaxSize < 1 {
 		t.Errorf("DefaultLogMaxSize = %d, want at least 1 MB", DefaultLogMaxSize)
 	}
-	
+
 	validLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
 	if !validLevels[DefaultLogLevel] {
 		t.Errorf("DefaultLogLevel = %s, want valid log level", DefaultLogLevel)

@@ -141,9 +141,9 @@ func TestGetTraceID(t *testing.T) {
 func TestContextWithTraceID(t *testing.T) {
 	ctx := context.Background()
 	traceID := "test-trace-456"
-	
+
 	newCtx := ContextWithTraceID(ctx, traceID)
-	
+
 	// Extract and verify
 	if val := newCtx.Value("trace_id"); val != traceID {
 		t.Errorf("ContextWithTraceID() trace_id = %v, want %v", val, traceID)
@@ -191,15 +191,15 @@ func TestLogFileSort(t *testing.T) {
 
 	sorted := byModTime(files)
 	sorted.Swap(0, 2) // Test swap
-	
+
 	if sorted[0].path != "log.2" {
 		t.Errorf("After swap, first file = %s, want log.2", sorted[0].path)
 	}
-	
+
 	if !sorted.Less(0, 1) {
 		t.Error("Less() comparison failed")
 	}
-	
+
 	if sorted.Len() != 3 {
 		t.Errorf("Len() = %d, want 3", sorted.Len())
 	}
@@ -208,15 +208,15 @@ func TestLogFileSort(t *testing.T) {
 func TestGenerateTraceID(t *testing.T) {
 	id1 := generateTraceID()
 	id2 := generateTraceID()
-	
+
 	if id1 == "" {
 		t.Error("generateTraceID() returned empty string")
 	}
-	
+
 	if id1 == id2 {
 		t.Error("generateTraceID() returned duplicate IDs")
 	}
-	
+
 	// Check format (should contain hyphen)
 	if !strings.Contains(id1, "-") {
 		t.Error("generateTraceID() format incorrect, missing hyphen")

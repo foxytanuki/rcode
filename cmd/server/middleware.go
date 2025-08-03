@@ -12,16 +12,16 @@ import (
 func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Wrap response writer to capture status code
 		wrapped := &responseWriter{
 			ResponseWriter: w,
 			statusCode:     http.StatusOK,
 		}
-		
+
 		// Process request
 		next.ServeHTTP(wrapped, r)
-		
+
 		// Log request details
 		duration := time.Since(start)
 		s.log.Info("HTTP request",
@@ -46,11 +46,11 @@ func (s *Server) recoveryMiddleware(next http.Handler) http.Handler {
 					"path", r.URL.Path,
 					"remote_addr", r.RemoteAddr,
 				)
-				
+
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -61,11 +61,11 @@ func (s *Server) ipWhitelistMiddleware(next http.Handler) http.Handler {
 	if len(s.config.Server.AllowedIPs) == 0 {
 		return next
 	}
-	
+
 	// Parse allowed IPs and CIDRs
 	var allowedNets []*net.IPNet
 	var allowedIPs []net.IP
-	
+
 	for _, allowed := range s.config.Server.AllowedIPs {
 		if strings.Contains(allowed, "/") {
 			// CIDR notation
@@ -80,12 +80,12 @@ func (s *Server) ipWhitelistMiddleware(next http.Handler) http.Handler {
 			}
 		}
 	}
-	
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Extract client IP
 		clientIP := getClientIP(r)
 		ip := net.ParseIP(clientIP)
-		
+
 		if ip == nil {
 			s.log.Warn("Could not parse client IP",
 				"remote_addr", r.RemoteAddr,
@@ -94,10 +94,10 @@ func (s *Server) ipWhitelistMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
-		
+
 		// Check if IP is allowed
 		allowed := false
-		
+
 		// Check single IPs
 		for _, allowedIP := range allowedIPs {
 			if ip.Equal(allowedIP) {
@@ -105,7 +105,7 @@ func (s *Server) ipWhitelistMiddleware(next http.Handler) http.Handler {
 				break
 			}
 		}
-		
+
 		// Check CIDR ranges
 		if !allowed {
 			for _, ipNet := range allowedNets {
@@ -115,7 +115,7 @@ func (s *Server) ipWhitelistMiddleware(next http.Handler) http.Handler {
 				}
 			}
 		}
-		
+
 		if !allowed {
 			s.log.Warn("Access denied by IP whitelist",
 				"client_ip", clientIP,
@@ -124,7 +124,7 @@ func (s *Server) ipWhitelistMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -136,13 +136,13 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		
+
 		// Handle preflight requests
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -179,17 +179,17 @@ func getClientIP(r *http.Request) string {
 		}
 		return strings.TrimSpace(xff)
 	}
-	
+
 	// Check X-Real-IP header
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return strings.TrimSpace(xri)
 	}
-	
+
 	// Fall back to RemoteAddr
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		return host
 	}
-	
+
 	return r.RemoteAddr
 }
 
@@ -201,11 +201,11 @@ func (s *Server) rateLimitMiddleware(next http.Handler) http.Handler {
 		maxRequests = 100
 		window      = time.Minute
 	)
-	
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clientIP := getClientIP(r)
 		now := time.Now()
-		
+
 		// Clean old entries
 		if times, exists := requests[clientIP]; exists {
 			var valid []time.Time
@@ -216,7 +216,7 @@ func (s *Server) rateLimitMiddleware(next http.Handler) http.Handler {
 			}
 			requests[clientIP] = valid
 		}
-		
+
 		// Check rate limit
 		if len(requests[clientIP]) >= maxRequests {
 			s.log.Warn("Rate limit exceeded",
@@ -226,10 +226,10 @@ func (s *Server) rateLimitMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 			return
 		}
-		
+
 		// Record request
 		requests[clientIP] = append(requests[clientIP], now)
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -242,7 +242,7 @@ func (s *Server) healthCheckMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// Use normal logging middleware for other requests
 		s.loggingMiddleware(next).ServeHTTP(w, r)
 	})

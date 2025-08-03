@@ -25,7 +25,7 @@ func (e ValidationErrors) Error() string {
 	if len(e) == 0 {
 		return ""
 	}
-	
+
 	var messages []string
 	for _, err := range e {
 		messages = append(messages, err.Error())
@@ -100,7 +100,7 @@ func ValidateServerConfig(config *ServerConfigFile) error {
 				Message: "editor command cannot be empty",
 			})
 		}
-		
+
 		// Check for duplicate names
 		if editorNames[editor.Name] {
 			errors = append(errors, ValidationError{
@@ -109,12 +109,12 @@ func ValidateServerConfig(config *ServerConfigFile) error {
 			})
 		}
 		editorNames[editor.Name] = true
-		
+
 		// Count default editors
 		if editor.Default {
 			defaultCount++
 		}
-		
+
 		// Validate command template
 		if err := validateCommandTemplate(editor.Command); err != nil {
 			errors = append(errors, ValidationError{
@@ -153,21 +153,21 @@ func ValidateClientConfig(config *ClientConfig) error {
 			Message: "primary host cannot be empty",
 		})
 	}
-	
+
 	if config.Network.Timeout < 0 {
 		errors = append(errors, ValidationError{
 			Field:   "network.timeout",
 			Message: "timeout cannot be negative",
 		})
 	}
-	
+
 	if config.Network.RetryAttempts < 0 {
 		errors = append(errors, ValidationError{
 			Field:   "network.retry_attempts",
 			Message: "retry attempts cannot be negative",
 		})
 	}
-	
+
 	if config.Network.RetryDelay < 0 {
 		errors = append(errors, ValidationError{
 			Field:   "network.retry_delay",
@@ -214,7 +214,7 @@ func validateLogConfig(config *LogConfig) ValidationErrors {
 		"warn":  true,
 		"error": true,
 	}
-	
+
 	if !validLevels[strings.ToLower(config.Level)] {
 		errors = append(errors, ValidationError{
 			Field:   "logging.level",
@@ -243,14 +243,14 @@ func validateLogConfig(config *LogConfig) ValidationErrors {
 			Message: "max size cannot be negative",
 		})
 	}
-	
+
 	if config.MaxBackups < 0 {
 		errors = append(errors, ValidationError{
 			Field:   "logging.max_backups",
 			Message: "max backups cannot be negative",
 		})
 	}
-	
+
 	if config.MaxAge < 0 {
 		errors = append(errors, ValidationError{
 			Field:   "logging.max_age",
@@ -277,7 +277,7 @@ func validateCommandTemplate(command string) error {
 		"{host}": true,
 		"{path}": true,
 	}
-	
+
 	// Simple check for placeholder-like patterns
 	for i := 0; i < len(command); i++ {
 		if command[i] == '{' {
@@ -313,7 +313,7 @@ func checkDirectoryWritable(dir string) error {
 	}
 	file.Close()
 	os.Remove(testFile)
-	
+
 	return nil
 }
 

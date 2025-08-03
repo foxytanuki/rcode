@@ -219,12 +219,12 @@ func TestClient_CheckHealth(t *testing.T) {
 
 func TestClient_GetManualCommand(t *testing.T) {
 	tests := []struct {
-		name     string
-		path     string
-		editor   string
-		sshInfo  SSHInfo
-		editors  []config.EditorConfig
-		want     string
+		name    string
+		path    string
+		editor  string
+		sshInfo SSHInfo
+		editors []config.EditorConfig
+		want    string
 	}{
 		{
 			name:   "configured editor",

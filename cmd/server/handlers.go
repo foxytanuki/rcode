@@ -46,7 +46,7 @@ func (s *Server) handleEditors(w http.ResponseWriter, r *http.Request) {
 			Default:   editor.Default,
 		}
 		editors = append(editors, info)
-		
+
 		if editor.Default {
 			defaultEditor = editor.Name
 		}
@@ -98,13 +98,13 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 			"editor", req.Editor,
 			"path", req.Path,
 		)
-		
+
 		// Determine appropriate error code
 		statusCode := http.StatusInternalServerError
 		if err == ErrEditorNotFound {
 			statusCode = http.StatusNotFound
 		}
-		
+
 		s.respondError(w, err, statusCode, "")
 		return
 	}
@@ -125,7 +125,7 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 func (s *Server) respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	
+
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		s.log.Error("Failed to encode JSON response", "error", err)
 	}
@@ -134,10 +134,10 @@ func (s *Server) respondJSON(w http.ResponseWriter, status int, data interface{}
 // respondError sends an error response
 func (s *Server) respondError(w http.ResponseWriter, err error, status int, details string) {
 	response := api.NewErrorResponse(err, api.GetErrorCode(err), details)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	
+
 	if encodeErr := json.NewEncoder(w).Encode(response); encodeErr != nil {
 		s.log.Error("Failed to encode error response", "error", encodeErr)
 	}

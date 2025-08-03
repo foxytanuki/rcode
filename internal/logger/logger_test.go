@@ -63,7 +63,7 @@ func TestParseLevel(t *testing.T) {
 		{"error", slog.LevelError},
 		{"ERROR", slog.LevelError},
 		{"invalid", slog.LevelInfo}, // default
-		{"", slog.LevelInfo},         // default
+		{"", slog.LevelInfo},        // default
 	}
 
 	for _, tt := range tests {
@@ -223,15 +223,15 @@ func TestDefault(t *testing.T) {
 
 func TestMultiHandler(t *testing.T) {
 	var buf1, buf2 bytes.Buffer
-	
+
 	handler1 := slog.NewTextHandler(&buf1, &slog.HandlerOptions{Level: slog.LevelInfo})
 	handler2 := slog.NewTextHandler(&buf2, &slog.HandlerOptions{Level: slog.LevelInfo})
-	
+
 	multiHandler := NewMultiHandler(handler1, handler2)
 	logger := slog.New(multiHandler)
-	
+
 	logger.Info("test message")
-	
+
 	if !strings.Contains(buf1.String(), "test message") {
 		t.Error("Message not found in first handler output")
 	}
@@ -263,10 +263,10 @@ func TestGetConfig(t *testing.T) {
 		Console: true,
 		Format:  "json",
 	}
-	
+
 	logger := New(config)
 	retrieved := logger.GetConfig()
-	
+
 	if retrieved.Level != config.Level {
 		t.Errorf("GetConfig().Level = %s, want %s", retrieved.Level, config.Level)
 	}

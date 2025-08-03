@@ -20,7 +20,7 @@ type ConfigPaths struct {
 // GetDefaultPaths returns the default configuration paths
 func GetDefaultPaths() ConfigPaths {
 	homeDir, _ := os.UserHomeDir()
-	
+
 	return ConfigPaths{
 		ServerConfig: filepath.Join(homeDir, ".config", "rcode", "server-config.yaml"),
 		ClientConfig: filepath.Join(homeDir, ".config", "rcode", "config.yaml"),
@@ -288,7 +288,7 @@ func applyServerDefaults(config *ServerConfigFile) {
 	if config.Server.IdleTimeout == 0 {
 		config.Server.IdleTimeout = DefaultIdleTimeout
 	}
-	
+
 	applyLogDefaults(&config.Logging, "server.log")
 }
 
@@ -303,7 +303,7 @@ func applyClientDefaults(config *ClientConfig) {
 	if config.Network.RetryDelay == 0 {
 		config.Network.RetryDelay = DefaultRetryDelay
 	}
-	
+
 	applyLogDefaults(&config.Logging, "client.log")
 }
 

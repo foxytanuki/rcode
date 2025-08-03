@@ -65,13 +65,13 @@ func TestExtractSSHInfo(t *testing.T) {
 			// Save and clear ALL SSH-related environment variables
 			envVarsToSave := []string{"SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY", "USER", "LOGNAME"}
 			oldEnv := make(map[string]string)
-			
+
 			// Save and clear all relevant environment variables
 			for _, k := range envVarsToSave {
 				oldEnv[k] = os.Getenv(k)
 				os.Unsetenv(k)
 			}
-			
+
 			defer func() {
 				// Restore original environment
 				for k, v := range oldEnv {
