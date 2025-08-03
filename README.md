@@ -64,7 +64,7 @@ source ~/.bashrc
 # Clone and build
 git clone https://github.com/foxytanuki/rcode.git
 cd rcode
-mise install  # Install Go version specified in .mise.toml
+mise install  # Install all tools specified in .mise.toml
 make build
 make install  # Installs to /usr/local/bin
 ```
@@ -291,15 +291,37 @@ Contributions are welcome! See [DEVELOPMENT.md](DEVELOPMENT.md) for development 
 ### Development Quick Start
 
 ```bash
-# Run tests
-make test
+# Install development tools (reads from .mise.toml)
+mise install
 
-# Run linter
-make lint
+# Or install specific tools manually
+# mise use go@latest
+# mise use golangci-lint@latest
+# mise use lefthook@latest
+
+# Install git hooks
+make install-hooks
+
+# Run all checks (fmt, vet, lint, test, build)
+make check
+
+# Run specific checks
+make fmt        # Format code
+make vet        # Run go vet
+make lint       # Run golangci-lint
+make test       # Run tests
 
 # Build all platforms
 make build-all
 ```
+
+### Code Quality
+
+This project uses:
+- **Lefthook** for git hooks (pre-commit, pre-push)
+- **golangci-lint** with multiple linters enabled
+- **gofmt -s** for code formatting
+- Automatic checks on commit and push
 
 ## 📄 License
 
