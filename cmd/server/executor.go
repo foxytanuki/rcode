@@ -1,3 +1,4 @@
+// Package main implements the rcode server application.
 package main
 
 import (
@@ -54,7 +55,7 @@ func (e *Executor) OpenEditor(editorName, user, host, path string) (string, erro
 		if editor == nil {
 			return "", ErrNoDefaultEditor
 		}
-		editorName = editor.Name
+		// editorName is already set from editor.Name below
 	} else {
 		// Find specific editor
 		for i := range e.editors {
@@ -123,8 +124,8 @@ func (e *Executor) executeCommand(command string) error {
 	executable := parts[0]
 	args := parts[1:]
 
-	// Create command
-	cmd := exec.Command(executable, args...)
+	// Create command - args are passed separately to prevent shell injection
+	cmd := exec.Command(executable, args...) // #nosec G204
 
 	// For GUI applications, we want to detach from the parent process
 	// so the server doesn't wait for the editor to close
@@ -290,6 +291,6 @@ func init() {
 	// Ensure we can execute commands
 	if os.Getenv("PATH") == "" {
 		// Set a reasonable default PATH if not set
-		os.Setenv("PATH", "/usr/local/bin:/usr/bin:/bin")
+		_ = os.Setenv("PATH", "/usr/local/bin:/usr/bin:/bin")
 	}
 }

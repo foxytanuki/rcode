@@ -135,7 +135,7 @@ func (c *Config) GetEditor(name string) *EditorConfig {
 	return nil
 }
 
-// GetDefaultClientEditor returns the default editor for client config
+// GetDefaultEditor returns the default editor for client config
 func (c *ClientConfig) GetDefaultEditor() *EditorConfig {
 	// Check if DefaultEditor is set
 	if c.DefaultEditor != "" {

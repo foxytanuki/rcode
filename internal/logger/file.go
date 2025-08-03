@@ -1,3 +1,4 @@
+// Package logger provides structured logging capabilities.
 package logger
 
 import (
@@ -44,7 +45,7 @@ func NewFileWriter(filename string, config *FileWriterConfig) (*FileWriter, erro
 
 	// Ensure directory exists
 	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %w", err)
 	}
 
@@ -106,7 +107,8 @@ func (fw *FileWriter) Close() error {
 
 // openFile opens the log file
 func (fw *FileWriter) openFile(filename string) error {
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	// Path is internally managed
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600) // #nosec G304
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}
@@ -114,7 +116,7 @@ func (fw *FileWriter) openFile(filename string) error {
 	// Get current file size
 	info, err := file.Stat()
 	if err != nil {
-		file.Close()
+		_ = file.Close()
 		return fmt.Errorf("failed to stat log file: %w", err)
 	}
 
@@ -130,7 +132,7 @@ func (fw *FileWriter) rotate(filename string) error {
 
 	// Close current file
 	if fw.file != nil {
-		fw.file.Close()
+		_ = fw.file.Close()
 		fw.file = nil
 	}
 
@@ -161,27 +163,29 @@ func (fw *FileWriter) rotate(filename string) error {
 
 // compressFile compresses a rotated log file
 func (fw *FileWriter) compressFile(filename string) {
-	src, err := os.Open(filename)
+	// Path is internally managed
+	src, err := os.Open(filename) // #nosec G304
 	if err != nil {
 		return
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
-	dst, err := os.Create(filename + ".gz")
+	// Path is internally managed
+	dst, err := os.Create(filename + ".gz") // #nosec G304
 	if err != nil {
 		return
 	}
-	defer dst.Close()
+	defer func() { _ = dst.Close() }()
 
 	gz := gzip.NewWriter(dst)
-	defer gz.Close()
+	defer func() { _ = gz.Close() }()
 
 	if _, err := io.Copy(gz, src); err != nil {
 		return
 	}
 
 	// Remove original file after successful compression
-	os.Remove(filename)
+	_ = os.Remove(filename)
 }
 
 // cleanOldFiles removes old log files based on MaxBackups and MaxAge
@@ -199,7 +203,7 @@ func (fw *FileWriter) cleanOldFiles(filename string) {
 		return
 	}
 
-	var backups []logFile
+	backups := make([]logFile, 0, len(matches))
 	cutoff := time.Now().Add(-24 * time.Hour * time.Duration(fw.config.MaxAge))
 
 	for _, match := range matches {
@@ -215,7 +219,7 @@ func (fw *FileWriter) cleanOldFiles(filename string) {
 
 		// Check age if MaxAge is set
 		if fw.config.MaxAge > 0 && info.ModTime().Before(cutoff) {
-			os.Remove(match)
+			_ = os.Remove(match)
 			continue
 		}
 
@@ -231,7 +235,7 @@ func (fw *FileWriter) cleanOldFiles(filename string) {
 	// Remove excess backups
 	if fw.config.MaxBackups > 0 && len(backups) > fw.config.MaxBackups {
 		for _, backup := range backups[fw.config.MaxBackups:] {
-			os.Remove(backup.path)
+			_ = os.Remove(backup.path)
 		}
 	}
 }
@@ -239,7 +243,7 @@ func (fw *FileWriter) cleanOldFiles(filename string) {
 // millLoop runs the rotation loop
 func (fw *FileWriter) millLoop(filename string) {
 	for range fw.millCh {
-		fw.rotate(filename)
+		_ = fw.rotate(filename)
 	}
 }
 
@@ -261,7 +265,7 @@ func GetTraceID(ctx context.Context) string {
 	}
 
 	// Check for trace ID in context
-	if traceID := ctx.Value("trace_id"); traceID != nil {
+	if traceID := ctx.Value(traceIDKey); traceID != nil {
 		if s, ok := traceID.(string); ok {
 			return s
 		}
@@ -277,9 +281,15 @@ func generateTraceID() string {
 	return fmt.Sprintf("%d-%d", time.Now().UnixNano(), os.Getpid())
 }
 
+// contextKey is a type for context keys
+type contextKey string
+
+// traceIDKey is the context key for trace ID
+const traceIDKey contextKey = "trace_id"
+
 // ContextWithTraceID adds a trace ID to the context
 func ContextWithTraceID(ctx context.Context, traceID string) context.Context {
-	return context.WithValue(ctx, "trace_id", traceID)
+	return context.WithValue(ctx, traceIDKey, traceID)
 }
 
 // StripANSI removes ANSI color codes from strings
@@ -289,13 +299,14 @@ func StripANSI(s string) string {
 	inEscape := false
 
 	for _, ch := range s {
-		if ch == '\033' {
+		switch {
+		case ch == '\033':
 			inEscape = true
-		} else if inEscape {
+		case inEscape:
 			if ch == 'm' {
 				inEscape = false
 			}
-		} else {
+		default:
 			result.WriteRune(ch)
 		}
 	}

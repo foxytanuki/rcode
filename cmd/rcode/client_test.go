@@ -37,7 +37,9 @@ func TestClient_OpenEditor(t *testing.T) {
 		resp.SetTimestamp()
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatalf("Failed to encode response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -74,7 +76,7 @@ func TestClient_OpenEditor(t *testing.T) {
 func TestClient_OpenEditor_WithFallback(t *testing.T) {
 	// Create primary server that fails
 	primaryFailed := false
-	primaryServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	primaryServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		primaryFailed = true
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -82,7 +84,7 @@ func TestClient_OpenEditor_WithFallback(t *testing.T) {
 
 	// Create fallback server that succeeds
 	fallbackUsed := false
-	fallbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	fallbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fallbackUsed = true
 		resp := api.OpenResponse{
 			Success: true,
@@ -93,7 +95,9 @@ func TestClient_OpenEditor_WithFallback(t *testing.T) {
 		resp.SetTimestamp()
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatalf("Failed to encode response: %v", err)
+		}
 	}))
 	defer fallbackServer.Close()
 
@@ -152,7 +156,9 @@ func TestClient_ListEditors(t *testing.T) {
 		resp.SetTimestamp()
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatalf("Failed to encode response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -193,7 +199,9 @@ func TestClient_CheckHealth(t *testing.T) {
 		resp.SetTimestamp()
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatalf("Failed to encode response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -298,7 +306,7 @@ func TestClient_Retry(t *testing.T) {
 	maxAttempts := 3
 
 	// Create test server that fails first attempts
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		attempts++
 		if attempts < maxAttempts {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -314,7 +322,9 @@ func TestClient_Retry(t *testing.T) {
 		resp.SetTimestamp()
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatalf("Failed to encode response: %v", err)
+		}
 	}))
 	defer server.Close()
 

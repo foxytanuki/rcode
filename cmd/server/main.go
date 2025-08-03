@@ -22,6 +22,10 @@ var (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	// Parse command-line flags
 	var (
 		configFile  = flag.String("config", "", "Path to configuration file")
@@ -35,14 +39,14 @@ func main() {
 	// Show version if requested
 	if *showVersion {
 		fmt.Printf("rcode-server version %s (built %s)\n", Version, BuildTime)
-		os.Exit(0)
+		return 0
 	}
 
 	// Load configuration
 	cfg, err := config.LoadServerConfig(*configFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Apply command-line overrides
@@ -59,7 +63,7 @@ func main() {
 	// Validate configuration
 	if err := config.ValidateServerConfig(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "Invalid configuration: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Initialize logger
@@ -73,7 +77,11 @@ func main() {
 		Compress:   cfg.Logging.Compress,
 		Format:     "text",
 	})
-	defer log.Close()
+	defer func() {
+		if err := log.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close logger: %v\n", err)
+		}
+	}()
 
 	// Log startup information
 	log.Info("Starting rcode-server",
@@ -111,7 +119,7 @@ func main() {
 	case err := <-serverErrors:
 		if err != nil && err != http.ErrServerClosed {
 			log.Error("Server error", "error", err)
-			os.Exit(1)
+			return 1
 		}
 	case sig := <-shutdown:
 		log.Info("Shutdown signal received", "signal", sig)
@@ -124,9 +132,12 @@ func main() {
 		log.Info("Shutting down server gracefully...")
 		if err := httpServer.Shutdown(ctx); err != nil {
 			log.Error("Server shutdown error", "error", err)
-			httpServer.Close()
+			if err := httpServer.Close(); err != nil {
+				log.Error("Failed to close HTTP server", "error", err)
+			}
 		}
 	}
 
 	log.Info("Server stopped")
+	return 0
 }

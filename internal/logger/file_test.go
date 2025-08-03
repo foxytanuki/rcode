@@ -22,7 +22,7 @@ func TestNewFileWriter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileWriter() error = %v", err)
 	}
-	defer fw.Close()
+	defer func() { _ = fw.Close() }()
 
 	// Write some data
 	data := []byte("test log entry\n")
@@ -53,7 +53,7 @@ func TestFileWriterRotation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileWriter() error = %v", err)
 	}
-	defer fw.Close()
+	defer func() { _ = fw.Close() }()
 
 	// Write enough data to trigger rotation
 	largeData := make([]byte, 1024*1024) // 1MB
@@ -87,7 +87,7 @@ func TestFileWriterWithNilConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileWriter() with nil config error = %v", err)
 	}
-	defer fw.Close()
+	defer func() { _ = fw.Close() }()
 
 	// Should use default config
 	if fw.config.MaxSize != 10 {
@@ -106,7 +106,7 @@ func TestGetTraceID(t *testing.T) {
 	}{
 		{
 			name: "with trace ID",
-			ctx:  context.WithValue(context.Background(), "trace_id", "test-123"),
+			ctx:  ContextWithTraceID(context.Background(), "test-123"),
 			want: "test-123",
 		},
 		{
@@ -145,7 +145,7 @@ func TestContextWithTraceID(t *testing.T) {
 	newCtx := ContextWithTraceID(ctx, traceID)
 
 	// Extract and verify
-	if val := newCtx.Value("trace_id"); val != traceID {
+	if val := newCtx.Value(traceIDKey); val != traceID {
 		t.Errorf("ContextWithTraceID() trace_id = %v, want %v", val, traceID)
 	}
 }

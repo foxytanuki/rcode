@@ -1,3 +1,4 @@
+// Package main implements the rcode client CLI application.
 package main
 
 import (
@@ -139,7 +140,11 @@ func (c *Client) sendRequest(host string, req api.OpenRequest) error {
 			lastErr = fmt.Errorf("request failed: %w", err)
 			continue
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				c.log.Warn("Failed to close response body", "error", err)
+			}
+		}()
 
 		// Check status code
 		if resp.StatusCode == http.StatusOK {
@@ -227,7 +232,11 @@ func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Warn("Failed to close response body", "error", err)
+		}
+	}()
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
@@ -337,7 +346,11 @@ func (c *Client) checkHostHealth(host string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Warn("Failed to close response body", "error", err)
+		}
+	}()
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {

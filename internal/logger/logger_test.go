@@ -39,7 +39,7 @@ func TestNew(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := New(tt.config)
 			if logger == nil {
-				t.Error("New() returned nil")
+				t.Fatal("New() returned nil")
 			}
 			if logger.Logger == nil {
 				t.Error("New() returned logger with nil slog.Logger")
@@ -197,7 +197,7 @@ func TestWithContext(t *testing.T) {
 		config: &Config{},
 	}
 
-	ctx := context.WithValue(context.Background(), "trace_id", "test-trace-123")
+	ctx := ContextWithTraceID(context.Background(), "test-trace-123")
 	logger.WithContext(ctx).Info("with context")
 	output := buf.String()
 
@@ -250,7 +250,7 @@ func TestLogWriter(t *testing.T) {
 	}
 
 	writer := logger.Writer(slog.LevelInfo)
-	writer.Write([]byte("test from writer"))
+	_, _ = writer.Write([]byte("test from writer"))
 
 	if !strings.Contains(buf.String(), "test from writer") {
 		t.Error("Writer output not found in logs")

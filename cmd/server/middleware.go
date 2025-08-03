@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -129,24 +128,6 @@ func (s *Server) ipWhitelistMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// corsMiddleware adds CORS headers
-func (s *Server) corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-		// Handle preflight requests
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 // responseWriter wraps http.ResponseWriter to capture status code
 type responseWriter struct {
 	http.ResponseWriter
@@ -191,68 +172,4 @@ func getClientIP(r *http.Request) string {
 	}
 
 	return r.RemoteAddr
-}
-
-// rateLimitMiddleware implements rate limiting per IP
-func (s *Server) rateLimitMiddleware(next http.Handler) http.Handler {
-	// Simple implementation - in production use a proper rate limiter
-	requests := make(map[string][]time.Time)
-	const (
-		maxRequests = 100
-		window      = time.Minute
-	)
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clientIP := getClientIP(r)
-		now := time.Now()
-
-		// Clean old entries
-		if times, exists := requests[clientIP]; exists {
-			var valid []time.Time
-			for _, t := range times {
-				if now.Sub(t) < window {
-					valid = append(valid, t)
-				}
-			}
-			requests[clientIP] = valid
-		}
-
-		// Check rate limit
-		if len(requests[clientIP]) >= maxRequests {
-			s.log.Warn("Rate limit exceeded",
-				"client_ip", clientIP,
-				"requests", len(requests[clientIP]),
-			)
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-			return
-		}
-
-		// Record request
-		requests[clientIP] = append(requests[clientIP], now)
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-// healthCheckMiddleware skips logging for health checks
-func (s *Server) healthCheckMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip logging for health checks from local monitoring
-		if r.URL.Path == "/health" && strings.HasPrefix(r.RemoteAddr, "127.0.0.1") {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		// Use normal logging middleware for other requests
-		s.loggingMiddleware(next).ServeHTTP(w, r)
-	})
-}
-
-// requestIDMiddleware adds a unique request ID to the context
-func (s *Server) requestIDMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID := fmt.Sprintf("%d-%s", time.Now().UnixNano(), getClientIP(r))
-		w.Header().Set("X-Request-ID", requestID)
-		next.ServeHTTP(w, r)
-	})
 }

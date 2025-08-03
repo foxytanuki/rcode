@@ -1,3 +1,4 @@
+// Package config provides configuration management for rcode.
 package config
 
 import (
@@ -10,18 +11,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ConfigPaths defines standard configuration file paths
-type ConfigPaths struct {
+// Paths defines standard configuration file paths
+type Paths struct {
 	ServerConfig string
 	ClientConfig string
 	LogDir       string
 }
 
 // GetDefaultPaths returns the default configuration paths
-func GetDefaultPaths() ConfigPaths {
+func GetDefaultPaths() Paths {
 	homeDir, _ := os.UserHomeDir()
 
-	return ConfigPaths{
+	return Paths{
 		ServerConfig: filepath.Join(homeDir, ".config", "rcode", "server-config.yaml"),
 		ClientConfig: filepath.Join(homeDir, ".config", "rcode", "config.yaml"),
 		LogDir:       filepath.Join(homeDir, ".local", "share", "rcode", "logs"),
@@ -43,7 +44,9 @@ func LoadServerConfig(path string) (*ServerConfigFile, error) {
 		return config, nil
 	}
 
-	data, err := os.ReadFile(path)
+	// Path is from user configuration or command-line argument
+	cleanPath := filepath.Clean(path)
+	data, err := os.ReadFile(cleanPath) // #nosec G304
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -74,7 +77,9 @@ func LoadClientConfig(path string) (*ClientConfig, error) {
 		return config, nil
 	}
 
-	data, err := os.ReadFile(path)
+	// Path is from user configuration or command-line argument
+	cleanPath := filepath.Clean(path)
+	data, err := os.ReadFile(cleanPath) // #nosec G304
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -98,7 +103,7 @@ func SaveServerConfig(path string, config *ServerConfigFile) error {
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -107,7 +112,7 @@ func SaveServerConfig(path string, config *ServerConfigFile) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
@@ -122,7 +127,7 @@ func SaveClientConfig(path string, config *ClientConfig) error {
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -131,7 +136,7 @@ func SaveClientConfig(path string, config *ClientConfig) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

@@ -1,3 +1,4 @@
+// Package editor handles editor command execution.
 package editor
 
 import (
@@ -117,8 +118,8 @@ func (e *Executor) executeCommand(command string) error {
 		return errors.New("empty command")
 	}
 
-	// Create command
-	cmd := exec.Command(executable, args...)
+	// Create command - args are passed separately to prevent shell injection
+	cmd := exec.Command(executable, args...) // #nosec G204
 
 	// For GUI editors, we want to detach from the parent process
 	cmd.Stdout = nil
@@ -185,7 +186,8 @@ func (e *Executor) ExecuteAndWait(editorName string, vars TemplateVars) error {
 	ctx, cancel := context.WithTimeout(context.Background(), e.timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, executable, args...)
+	// Args are passed separately to prevent shell injection
+	cmd := exec.CommandContext(ctx, executable, args...) // #nosec G204
 
 	// Log the execution
 	e.log.Debug("Executing and waiting for editor",

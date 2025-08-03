@@ -178,7 +178,7 @@ func formatValue(sb *strings.Builder, v slog.Value) {
 		// Quote strings if they contain spaces or special characters
 		s := v.String()
 		if strings.ContainsAny(s, " \t\n\r\"") {
-			sb.WriteString(fmt.Sprintf("%q", s))
+			fmt.Fprintf(sb, "%q", s)
 		} else {
 			sb.WriteString(s)
 		}
@@ -196,7 +196,7 @@ func formatValue(sb *strings.Builder, v slog.Value) {
 		}
 		sb.WriteString("}")
 	default:
-		sb.WriteString(fmt.Sprint(v.Any()))
+		fmt.Fprint(sb, v.Any())
 	}
 }
 
@@ -215,7 +215,7 @@ func NewJSONFormatter(pretty bool) *JSONFormatter {
 }
 
 // Format formats a log record as JSON
-func (f *JSONFormatter) Format(r slog.Record) string {
+func (f *JSONFormatter) Format(_ slog.Record) string {
 	// This would be used if we need custom JSON formatting
 	// For now, we'll use the built-in slog.JSONHandler
 	return ""

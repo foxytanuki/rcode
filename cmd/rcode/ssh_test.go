@@ -69,23 +69,23 @@ func TestExtractSSHInfo(t *testing.T) {
 			// Save and clear all relevant environment variables
 			for _, k := range envVarsToSave {
 				oldEnv[k] = os.Getenv(k)
-				os.Unsetenv(k)
+				_ = os.Unsetenv(k)
 			}
 
 			defer func() {
 				// Restore original environment
 				for k, v := range oldEnv {
 					if v != "" {
-						os.Setenv(k, v)
+						_ = os.Setenv(k, v)
 					} else {
-						os.Unsetenv(k)
+						_ = os.Unsetenv(k)
 					}
 				}
 			}()
 
 			// Set test environment
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
+				_ = os.Setenv(k, v)
 			}
 
 			// Test
@@ -147,19 +147,19 @@ func TestIsSSHSession(t *testing.T) {
 			envKeys := []string{"SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"}
 			for _, k := range envKeys {
 				oldEnv[k] = os.Getenv(k)
-				os.Unsetenv(k)
+				_ = os.Unsetenv(k)
 			}
 			defer func() {
 				for k, v := range oldEnv {
 					if v != "" {
-						os.Setenv(k, v)
+						_ = os.Setenv(k, v)
 					}
 				}
 			}()
 
 			// Set test environment
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
+				_ = os.Setenv(k, v)
 			}
 
 			// Test

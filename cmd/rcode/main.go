@@ -18,6 +18,10 @@ var (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	// Parse command-line flags
 	var (
 		configFile  = flag.String("config", "", "Path to configuration file")
@@ -34,14 +38,14 @@ func main() {
 	// Show version if requested
 	if *showVersion {
 		fmt.Printf("rcode version %s (built %s)\n", Version, BuildTime)
-		os.Exit(0)
+		return 0
 	}
 
 	// Load configuration
 	cfg, err := config.LoadClientConfig(*configFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Apply command-line overrides
@@ -61,7 +65,7 @@ func main() {
 	// Validate configuration
 	if err := config.ValidateClientConfig(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "Invalid configuration: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Initialize logger
@@ -83,12 +87,16 @@ func main() {
 	}
 
 	log := logger.New(logConfig)
-	defer log.Close()
+	defer func() {
+		if err := log.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close logger: %v\n", err)
+		}
+	}()
 
 	// Show configuration if requested
 	if *showConfig {
 		showConfiguration(cfg)
-		os.Exit(0)
+		return 0
 	}
 
 	// Create client
@@ -98,9 +106,9 @@ func main() {
 	if *listEditors {
 		if err := client.ListEditors(); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to list editors: %v\n", err)
-			os.Exit(1)
+			return 1
 		}
-		os.Exit(0)
+		return 0
 	}
 
 	// Get the path to open (default to current directory)
@@ -113,7 +121,7 @@ func main() {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to resolve path: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Extract SSH connection information
@@ -160,10 +168,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "  %s\n", manualCmd)
 		}
 
-		os.Exit(1)
+		return 1
 	}
 
 	fmt.Printf("Successfully opened %s\n", absPath)
+	return 0
 }
 
 // showConfiguration displays the current configuration

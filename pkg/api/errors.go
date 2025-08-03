@@ -1,3 +1,4 @@
+// Package api defines the API types and interfaces for rcode.
 package api
 
 import (

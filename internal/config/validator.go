@@ -26,7 +26,7 @@ func (e ValidationErrors) Error() string {
 		return ""
 	}
 
-	var messages []string
+	messages := make([]string, 0, len(e))
 	for _, err := range e {
 		messages = append(messages, err.Error())
 	}
@@ -307,12 +307,14 @@ func checkDirectoryWritable(dir string) error {
 
 	// Try to create a temporary file to test writability
 	testFile := filepath.Join(dir, ".rcode_write_test")
-	file, err := os.Create(testFile)
+	// Path is constructed internally for test purposes
+	cleanPath := filepath.Clean(testFile)
+	file, err := os.Create(cleanPath) // #nosec G304
 	if err != nil {
 		return fmt.Errorf("directory not writable: %w", err)
 	}
-	file.Close()
-	os.Remove(testFile)
+	_ = file.Close()
+	_ = os.Remove(testFile)
 
 	return nil
 }

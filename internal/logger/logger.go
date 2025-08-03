@@ -99,14 +99,15 @@ func New(config *Config) *Logger {
 
 	// Combine handlers
 	var handler slog.Handler
-	if len(handlers) == 0 {
+	switch len(handlers) {
+	case 0:
 		// Fallback to console if no handlers configured
 		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: level,
 		})
-	} else if len(handlers) == 1 {
+	case 1:
 		handler = handlers[0]
-	} else {
+	default:
 		handler = NewMultiHandler(handlers...)
 	}
 
@@ -135,7 +136,7 @@ func parseLevel(level string) slog.Level {
 // WithContext returns a logger with context
 func (l *Logger) WithContext(ctx context.Context) *Logger {
 	return &Logger{
-		Logger: l.Logger.With("trace_id", GetTraceID(ctx)),
+		Logger: l.With("trace_id", GetTraceID(ctx)),
 		config: l.config,
 	}
 }
@@ -147,7 +148,7 @@ func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
 		args = append(args, k, v)
 	}
 	return &Logger{
-		Logger: l.Logger.With(args...),
+		Logger: l.With(args...),
 		config: l.config,
 	}
 }
@@ -155,7 +156,7 @@ func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
 // WithError returns a logger with an error field
 func (l *Logger) WithError(err error) *Logger {
 	return &Logger{
-		Logger: l.Logger.With("error", err.Error()),
+		Logger: l.With("error", err.Error()),
 		config: l.config,
 	}
 }
@@ -288,6 +289,6 @@ type logWriter struct {
 
 func (w *logWriter) Write(p []byte) (n int, err error) {
 	msg := strings.TrimSpace(string(p))
-	w.logger.Logger.Log(context.Background(), w.level, msg)
+	w.logger.Log(context.Background(), w.level, msg)
 	return len(p), nil
 }
