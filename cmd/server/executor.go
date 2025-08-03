@@ -55,7 +55,6 @@ func (e *Executor) OpenEditor(editorName, user, host, path string) (string, erro
 		if editor == nil {
 			return "", ErrNoDefaultEditor
 		}
-		// editorName is already set from editor.Name below
 	} else {
 		// Find specific editor
 		for i := range e.editors {
