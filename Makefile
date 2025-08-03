@@ -8,7 +8,7 @@ BUILD_DIR=bin
 INSTALL_DIR=/usr/local/bin
 
 # Go parameters
-GOCMD=go
+GOCMD=mise exec -- go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
