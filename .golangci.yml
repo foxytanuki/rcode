@@ -1,0 +1,66 @@
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - dupl
+    - gocyclo
+    - gocritic
+    - gosec
+    - misspell
+    - prealloc
+    - revive
+    - unconvert
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  
+  dupl:
+    threshold: 100
+  
+  errcheck:
+    check-type-assertions: true
+  
+  misspell:
+    locale: US
+  
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+    disabled-checks:
+      - commentFormatting
+      - ifElseChain
+  
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true
+      - name: exported
+        disabled: false
+
+issues:
+  exclude-rules:
+    # Exclude test files from some linters
+    - path: _test\.go
+      linters:
+        - gosec
+        - dupl
+        - errcheck
+    
+    # Ignore missing comments for exported types in internal packages
+    - path: internal/.*\.go
+      text: "exported .* should have comment"
+      linters:
+        - revive
