@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Build binaries
+      run: |
+        # Linux AMD64
+        GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.Version=${GITHUB_REF#refs/tags/}" \
+          -o bin/rcode-server-linux-amd64 ./cmd/server
+        GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.Version=${GITHUB_REF#refs/tags/}" \
+          -o bin/rcode-linux-amd64 ./cmd/rcode
+        
+        # Linux ARM64
+        GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.Version=${GITHUB_REF#refs/tags/}" \
+          -o bin/rcode-server-linux-arm64 ./cmd/server
+        GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.Version=${GITHUB_REF#refs/tags/}" \
+          -o bin/rcode-linux-arm64 ./cmd/rcode
+        
+        # macOS AMD64
+        GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X main.Version=${GITHUB_REF#refs/tags/}" \
+          -o bin/rcode-server-darwin-amd64 ./cmd/server
+        GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X main.Version=${GITHUB_REF#refs/tags/}" \
+          -o bin/rcode-darwin-amd64 ./cmd/rcode
+        
+        # macOS ARM64
+        GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X main.Version=${GITHUB_REF#refs/tags/}" \
+          -o bin/rcode-server-darwin-arm64 ./cmd/server
+        GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X main.Version=${GITHUB_REF#refs/tags/}" \
+          -o bin/rcode-darwin-arm64 ./cmd/rcode
+
+    - name: Create archives
+      run: |
+        cd bin
+        # Create tar.gz archives for each platform
+        tar czf rcode-linux-amd64.tar.gz rcode-server-linux-amd64 rcode-linux-amd64
+        tar czf rcode-linux-arm64.tar.gz rcode-server-linux-arm64 rcode-linux-arm64
+        tar czf rcode-darwin-amd64.tar.gz rcode-server-darwin-amd64 rcode-darwin-amd64
+        tar czf rcode-darwin-arm64.tar.gz rcode-server-darwin-arm64 rcode-darwin-arm64
+        
+        # Create checksums
+        sha256sum *.tar.gz > checksums.txt
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        draft: true
+        files: |
+          bin/*.tar.gz
+          bin/checksums.txt
+        body: |
+          ## What's New
+          
+          <!-- Add release notes here -->
+          
+          ## Installation
+          
+          ### macOS (Apple Silicon)
+          ```bash
+          curl -L https://github.com/foxytanuki/rcode/releases/download/${{ github.ref_name }}/rcode-darwin-arm64.tar.gz | tar xz
+          sudo mv rcode-* /usr/local/bin/
+          ```
+          
+          ### macOS (Intel)
+          ```bash
+          curl -L https://github.com/foxytanuki/rcode/releases/download/${{ github.ref_name }}/rcode-darwin-amd64.tar.gz | tar xz
+          sudo mv rcode-* /usr/local/bin/
+          ```
+          
+          ### Linux (x86_64)
+          ```bash
+          curl -L https://github.com/foxytanuki/rcode/releases/download/${{ github.ref_name }}/rcode-linux-amd64.tar.gz | tar xz
+          sudo mv rcode-* /usr/local/bin/
+          ```
+          
+          ### Linux (ARM64)
+          ```bash
+          curl -L https://github.com/foxytanuki/rcode/releases/download/${{ github.ref_name }}/rcode-linux-arm64.tar.gz | tar xz
+          sudo mv rcode-* /usr/local/bin/
+          ```
+          
+          ## Checksums
+          
+          See `checksums.txt` for SHA256 checksums of all archives.
