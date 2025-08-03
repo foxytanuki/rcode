@@ -90,7 +90,7 @@ rcode-server
 
 The server will start on port 3000 and display:
 ```
-INFO Starting rcode-server version=0.1.0 host=0.0.0.0 port=3000
+INFO Starting rcode-server version=0.0.1 host=0.0.0.0 port=3000
 INFO Server listening address=0.0.0.0:3000
 ```
 
