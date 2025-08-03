@@ -72,11 +72,14 @@ func NewManager(configs []config.EditorConfig, log *logger.Logger) (*Manager, er
 		}
 	}
 
-	// If no default was explicitly set, use the first available
-	if m.defaultName == "" && len(m.editors) > 0 {
-		for name := range m.editors {
-			m.defaultName = name
-			break
+	// If no default was explicitly set, use the first configured editor
+	if m.defaultName == "" && len(configs) > 0 {
+		// Use the first valid editor from the original config slice
+		for _, cfg := range configs {
+			if _, exists := m.editors[cfg.Name]; exists {
+				m.defaultName = cfg.Name
+				break
+			}
 		}
 	}
 
