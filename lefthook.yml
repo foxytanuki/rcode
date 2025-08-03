@@ -1,0 +1,50 @@
+# Lefthook configuration for rcode project
+# https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: true
+  commands:
+    gofmt:
+      glob: "*.go"
+      run: mise exec go -- gofmt -s -w {staged_files} && git add {staged_files}
+      stage_fixed: true
+      
+    govet:
+      glob: "*.go"
+      run: mise exec go -- go vet ./...
+    
+    golangci-lint:
+      glob: "*.go"
+      run: |
+        if command -v mise &> /dev/null; then
+          mise exec golangci-lint -- golangci-lint run ./... --timeout=30s
+        else
+          echo "golangci-lint not installed via mise, skipping..."
+        fi
+      
+    test:
+      glob: "*.go"
+      run: mise exec go -- go test -short ./...
+
+pre-push:
+  parallel: false
+  commands:
+    test-full:
+      run: mise exec go -- go test ./...
+      
+    build:
+      run: |
+        mise exec go -- go build -o /tmp/rcode-test ./cmd/rcode &&
+        mise exec go -- go build -o /tmp/rcode-server-test ./cmd/server &&
+        rm -f /tmp/rcode-test /tmp/rcode-server-test
+
+commit-msg:
+  commands:
+    check-commit-msg:
+      run: |
+        # Check commit message format (optional)
+        # Example: ensure commit message is not empty and has minimum length
+        if [ $(cat {1} | wc -c) -lt 10 ]; then
+          echo "Commit message is too short (minimum 10 characters)"
+          exit 1
+        fi
