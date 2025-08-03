@@ -1,0 +1,67 @@
+# RCode Server Configuration Example
+# Place this file at ~/.config/rcode/server-config.yaml
+
+# Server configuration
+server:
+  # Host to bind to (0.0.0.0 listens on all interfaces)
+  host: "0.0.0.0"
+  
+  # Port to listen on
+  port: 3000
+  
+  # HTTP timeouts
+  read_timeout: 10s
+  write_timeout: 10s
+  idle_timeout: 120s
+  
+  # IP whitelist (empty = allow all)
+  # Supports both single IPs and CIDR notation
+  allowed_ips: []
+  # Example with restrictions:
+  # allowed_ips:
+  #   - "192.168.1.0/24"  # Local network
+  #   - "100.64.0.0/10"   # Tailscale network
+  #   - "127.0.0.1"       # Localhost
+
+# Available editors
+editors:
+  # Cursor editor (default)
+  - name: cursor
+    command: "cursor --remote ssh-remote+{user}@{host} {path}"
+    default: true
+    available: true
+
+  # Visual Studio Code
+  - name: vscode
+    command: "code --remote ssh-remote+{user}@{host} {path}"
+    default: false
+    available: true
+
+  # Alternative VS Code command
+  - name: code
+    command: "code --remote ssh-remote+{user}@{host} {path}"
+    default: false
+    available: true
+
+  # Neovim with SCP
+  - name: nvim
+    command: "nvim scp://{user}@{host}/{path}"
+    default: false
+    available: true
+
+# Logging configuration
+logging:
+  # Log level: debug, info, warn, error
+  level: info
+  
+  # Log file path
+  file: "~/.local/share/rcode/logs/server.log"
+  
+  # Log rotation settings
+  max_size: 10      # MB
+  max_backups: 5    # Number of old files to keep
+  max_age: 30       # Days
+  compress: true    # Compress rotated files
+  
+  # Also log to console
+  console: true
