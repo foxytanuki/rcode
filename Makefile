@@ -1,4 +1,4 @@
-.PHONY: all build build-all clean test lint fmt vet install-tools help
+.PHONY: all build build-all clean test lint lint-fix lint-report fix-permissions fix-all fmt vet install-tools help check install-hooks
 
 # Variables
 BINARY_NAME_SERVER=rcode-server
@@ -88,12 +88,51 @@ benchmark:
 
 ## lint: Run golangci-lint
 lint:
-	@which golangci-lint > /dev/null || (echo "golangci-lint not installed. Run 'make install-tools'" && exit 1)
-	golangci-lint run ./...
+	@if command -v mise > /dev/null; then \
+		mise exec golangci-lint -- golangci-lint run ./...; \
+	elif command -v golangci-lint > /dev/null; then \
+		golangci-lint run ./...; \
+	else \
+		echo "golangci-lint not installed. Install via 'mise use golangci-lint@latest' or 'make install-tools'"; \
+		exit 1; \
+	fi
 
-## fmt: Format code
+## lint-fix: Auto-fix lint issues where possible
+lint-fix:
+	@echo "🔧 Running automatic lint fixes..."
+	@if command -v mise > /dev/null; then \
+		mise exec golangci-lint -- golangci-lint run --fix ./... 2>&1 | head -1 || true; \
+	elif command -v golangci-lint > /dev/null; then \
+		golangci-lint run --fix ./... 2>&1 | head -1 || true; \
+	else \
+		echo "golangci-lint not installed. Install via 'mise use golangci-lint@latest' or 'make install-tools'"; \
+		exit 1; \
+	fi
+	@echo "✅ Auto-fix completed (some issues may need manual fixing)"
+
+## lint-report: Generate lint report
+lint-report:
+	@./scripts/lint-report.sh
+
+## fix-permissions: Fix file permissions (0755->0750, 0644->0600)
+fix-permissions:
+	@echo "🔐 Fixing file permissions..."
+	@find . -name "*.go" -type f -exec sed -i 's/0755/0750/g; s/0644/0600/g' {} \;
+	@echo "✅ Permissions fixed"
+
+## fix-all: Run all automatic fixes (lint, permissions, fmt)
+fix-all: fmt fix-permissions lint-fix
+	@echo "✨ All automatic fixes completed"
+	@echo "📊 Remaining issues:"
+	@make lint 2>&1 | tail -5 || true
+
+## fmt: Format code with simplifications
 fmt:
-	$(GOFMT) ./...
+	@if command -v mise > /dev/null; then \
+		mise exec go -- gofmt -s -w .; \
+	else \
+		gofmt -s -w .; \
+	fi
 	@echo "Code formatted"
 
 ## vet: Run go vet
@@ -157,3 +196,17 @@ deps-update:
 ## version: Display version
 version:
 	@echo $(VERSION)
+
+## check: Run all checks (fmt, vet, test, build)
+check:
+	@./scripts/check.sh
+
+## install-hooks: Install git hooks via lefthook
+install-hooks:
+	@echo "Installing git hooks..."
+	@mise exec lefthook -- lefthook install
+	@echo "Git hooks installed"
+
+## run-hooks: Run git hooks manually
+run-hooks:
+	@mise exec lefthook -- lefthook run pre-commit
