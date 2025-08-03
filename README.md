@@ -1,123 +1,323 @@
 # RCode - Remote Code Launcher
 
-A Go-based system that allows launching host machine code editors from SSH-connected remote machines without requiring SSH server on the host.
+[![CI](https://github.com/foxytanuki/rcode/actions/workflows/ci.yml/badge.svg)](https://github.com/foxytanuki/rcode/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/foxytanuki/rcode)](https://goreportcard.com/report/github.com/foxytanuki/rcode)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Overview
+Launch your local code editor from SSH-connected remote machines without an SSH server on the host.
 
-RCode enables seamless code editing when working on remote servers by allowing you to open files from the remote machine directly in your local editor (VSCode, Cursor, Neovim, etc.).
+## 🚀 Overview
 
-## Architecture
+RCode enables seamless code editing when working on remote servers. Open files from your SSH session directly in your local editor (Cursor, VSCode, Neovim, etc.) with a simple command.
 
+### How It Works
+
+```mermaid
+graph LR
+    A[Remote Machine] -->|rcode /path| B[HTTP Request]
+    B --> C[Host Machine :3000]
+    C --> D[Launch Editor]
+    D --> E[Editor Opens with SSH Remote]
 ```
-Remote Machine → HTTP POST → Host Server → Launch Editor
-   (rcode CLI)     (JSON)    (rcode-server)  (cursor/vscode/nvim)
-```
 
-## Features
+## ✨ Features
 
-- Launch local editors from remote SSH sessions
-- Support for multiple editors (Cursor, VSCode, Neovim)
-- Automatic network fallback (LAN → Tailscale)
-- No SSH server required on host machine
-- Cross-platform support (macOS, Linux)
+- 🚀 **Instant Editor Launch** - Open files in your local editor with one command
+- 🔌 **Multiple Editor Support** - Cursor, VSCode, Neovim, and more
+- 🌐 **Network Fallback** - Automatic failover from LAN to Tailscale
+- 🔒 **Secure by Design** - IP whitelist, rate limiting, no SSH server needed
+- 🎯 **Zero Config** - Works out of the box with sensible defaults
+- 🐧 **Cross-Platform** - macOS and Linux support
 
-## Quick Start
+## 📦 Installation
 
-### Prerequisites
+### Using Pre-built Binaries
 
-- Go 1.21+ (for building from source)
-- Make (for build automation)
+Download the latest release for your platform:
 
-### Installation
-
-1. Clone the repository:
 ```bash
+# macOS (Apple Silicon)
+curl -L https://github.com/foxytanuki/rcode/releases/latest/download/rcode-darwin-arm64.tar.gz | tar xz
+sudo mv rcode-* /usr/local/bin/
+
+# macOS (Intel)
+curl -L https://github.com/foxytanuki/rcode/releases/latest/download/rcode-darwin-amd64.tar.gz | tar xz
+sudo mv rcode-* /usr/local/bin/
+
+# Linux (x86_64)
+curl -L https://github.com/foxytanuki/rcode/releases/latest/download/rcode-linux-amd64.tar.gz | tar xz
+sudo mv rcode-* /usr/local/bin/
+```
+
+### Building from Source
+
+Requirements:
+- [mise](https://mise.jdx.dev/) - for Go toolchain management
+- Make
+
+```bash
+# Install mise (if not already installed)
+curl https://mise.run | sh
+echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc
+
+# Clone and build
 git clone https://github.com/foxytanuki/rcode.git
 cd rcode
-```
-
-2. Build the binaries:
-```bash
+mise install  # Install Go version specified in .mise.toml
 make build
-```
-
-3. Install to system:
-```bash
 make install  # Installs to /usr/local/bin
 ```
 
-### Usage
+Alternative without mise (requires Go 1.21+ pre-installed):
+```bash
+git clone https://github.com/foxytanuki/rcode.git
+cd rcode
+go build -o bin/rcode-server ./cmd/server
+go build -o bin/rcode ./cmd/rcode
+sudo cp bin/* /usr/local/bin/
+```
 
-#### On Host Machine (Mac/Linux)
+## 🚦 Quick Start
 
-1. Start the server:
+### Step 1: Start the Server (Host Machine)
+
+On your Mac or Linux host machine where your editors are installed:
+
 ```bash
 rcode-server
 ```
 
-The server will listen on port 3000 by default.
-
-#### On Remote Machine (via SSH)
-
-1. Open a file or directory in your local editor:
-```bash
-rcode /path/to/project
+The server will start on port 3000 and display:
+```
+INFO Starting rcode-server version=0.1.0 host=0.0.0.0 port=3000
+INFO Server listening address=0.0.0.0:3000
 ```
 
-The client will automatically detect SSH connection information and send a request to your host machine to open the specified path.
+### Step 2: Configure the Client (Remote Machine)
 
-## Configuration
-
-### Server Configuration
-Location: `~/.config/rcode/server-config.yaml`
-
-```yaml
-server:
-  host: "0.0.0.0"
-  port: 3000
-
-editors:
-  - name: cursor
-    command: "cursor --remote ssh-remote+{user}@{host} {path}"
-    default: true
-  - name: vscode
-    command: "code --remote ssh-remote+{user}@{host} {path}"
-```
-
-### Client Configuration
-Location: `~/.config/rcode/config.yaml`
+On your remote machine, create `~/.config/rcode/config.yaml`:
 
 ```yaml
 network:
-  primary_host: "192.168.1.100"  # Your host's LAN IP
-  fallback_host: "100.64.0.1"     # Tailscale IP
-  timeout: "2s"
+  primary_host: "192.168.1.100"  # Your host machine's IP
+  fallback_host: ""               # Optional: Tailscale IP
 
-default_editor: cursor
+default_editor: cursor  # or vscode, nvim
+
+# Optional: Override SSH host for editor connection
+# ssh_host: "192.168.1.50"  # Use specific IP instead of auto-detection
+# ssh_host: "remote-dev"    # Or use hostname from ~/.ssh/config
 ```
 
-## Development
+Find your host IP:
+```bash
+# On macOS
+ifconfig | grep "inet " | grep -v 127.0.0.1
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for development environment setup and contribution guidelines.
+# On Linux  
+ip addr show | grep "inet " | grep -v 127.0.0.1
+```
 
-## Project Status
+**Note about SSH host detection:** By default, rcode uses the IP address from SSH_CONNECTION (where you SSHed from). If you're using Tailscale or other VPN for SSH, you may need to set `ssh_host` to your LAN IP or a hostname configured in your host's `~/.ssh/config`.
 
-This project is under active development. See [docs/_local/TASK.md](docs/_local/TASK.md) for the implementation roadmap.
+### Step 3: Open Files from Remote
 
-### Current Phase: MVP Development
-- [x] Project setup and foundation
-- [ ] Shared components (pkg/api)
-- [ ] Configuration management
-- [ ] Logger component
-- [ ] HTTP server implementation
-- [ ] Editor management
-- [ ] CLI client implementation
-- [ ] Basic testing and documentation
+SSH into your remote machine and use rcode:
 
-## License
+```bash
+# Open current directory
+rcode .
 
-MIT
+# Open specific file or directory
+rcode /home/user/project
 
-## Author
+# Use a specific editor
+rcode --editor vscode /path/to/file
 
-[@foxytanuki](https://github.com/foxytanuki)
+# List available editors
+rcode --list-editors
+```
+
+## ⚙️ Configuration
+
+### Server Configuration
+
+Location: `~/.config/rcode/server-config.yaml`
+
+See [examples/server-config.yaml](examples/server-config.yaml) for a complete example.
+
+Key settings:
+- **Editors**: Configure available editors and their commands
+- **IP Whitelist**: Restrict access to specific IPs/networks
+- **Logging**: Control log levels and output
+
+### Client Configuration  
+
+Location: `~/.config/rcode/config.yaml`
+
+See [examples/config.yaml](examples/config.yaml) for a complete example.
+
+Key settings:
+- **Network**: Configure primary and fallback hosts
+- **Default Editor**: Set your preferred editor
+- **SSH Host**: Override the SSH host for editor connections
+- **Retry Logic**: Configure timeout and retry behavior
+
+### Environment Variables
+
+Override configuration with environment variables:
+
+```bash
+# Server
+RCODE_HOST=0.0.0.0 RCODE_PORT=3001 rcode-server
+
+# Client
+RCODE_HOST=192.168.1.200 RCODE_EDITOR=vscode rcode /path
+```
+
+## 🎯 Common Use Cases
+
+### Remote Development
+
+Perfect for development on cloud VMs, containers, or remote servers:
+
+```bash
+# On AWS EC2, GCP, Azure VMs
+rcode ~/project
+
+# In Docker containers
+docker exec -it container_name rcode /app
+
+# On Kubernetes pods
+kubectl exec -it pod_name -- rcode /app
+```
+
+### Tailscale Network
+
+Use Tailscale for secure access from anywhere:
+
+```yaml
+# config.yaml
+network:
+  primary_host: "192.168.1.100"     # LAN IP
+  fallback_host: "100.101.102.103"  # Tailscale IP
+
+# If SSH-ing via Tailscale, specify LAN IP for editor
+ssh_host: "192.168.1.50"  # Your remote machine's LAN IP
+```
+
+### Multiple Editors
+
+Configure different editors for different file types:
+
+```bash
+rcode --editor cursor main.go     # Go development
+rcode --editor vscode index.html  # Web development  
+rcode --editor nvim config.yaml   # Quick edits
+```
+
+## 📡 API Documentation
+
+RCode server exposes a REST API. See [docs/API.md](docs/API.md) for complete documentation.
+
+Quick example:
+```bash
+# Open editor via API
+curl -X POST http://localhost:3000/open-editor \
+  -H "Content-Type: application/json" \
+  -d '{"path": "/home/project", "user": "alice", "host": "server"}'
+
+# Check health
+curl http://localhost:3000/health
+```
+
+## 🔧 Troubleshooting
+
+### Server not reachable
+
+1. Check firewall settings:
+```bash
+# macOS
+sudo pfctl -d  # Temporarily disable firewall
+
+# Linux
+sudo ufw allow 3000  # Allow port 3000
+```
+
+2. Verify server is running:
+```bash
+curl http://localhost:3000/health
+```
+
+3. Test from remote:
+```bash
+telnet YOUR_HOST_IP 3000
+```
+
+### Editor not opening
+
+1. Check editor availability:
+```bash
+rcode --list-editors
+```
+
+2. Verify SSH connection info:
+```bash
+echo $SSH_CONNECTION
+```
+
+3. Try manual command (shown on error):
+```bash
+# Example manual fallback command
+cursor --remote ssh-remote+user@host /path
+```
+
+### Debug mode
+
+Enable verbose logging:
+```bash
+# Server
+RCODE_LOG_LEVEL=debug rcode-server
+
+# Client  
+rcode --verbose /path
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! See [DEVELOPMENT.md](DEVELOPMENT.md) for development setup.
+
+### Development Quick Start
+
+```bash
+# Run tests
+make test
+
+# Run linter
+make lint
+
+# Build all platforms
+make build-all
+```
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file.
+
+## 🙏 Acknowledgments
+
+- Inspired by the need for better remote development workflows
+- Built with Go's excellent standard library
+- Thanks to all contributors and users
+
+## 📚 Resources
+
+- [API Documentation](docs/API.md)
+- [Development Guide](DEVELOPMENT.md)
+- [Example Configurations](examples/)
+- [Project Roadmap](docs/_local/TASK.md)
+
+---
+
+Made with ❤️ by [@foxytanuki](https://github.com/foxytanuki) and Claude Code
