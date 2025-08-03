@@ -66,6 +66,7 @@ type ClientConfig struct {
 	DefaultEditor string         `yaml:"default_editor" json:"default_editor"` // Default editor name
 	Editors       []EditorConfig `yaml:"editors,omitempty" json:"editors,omitempty"` // Editor overrides
 	Logging       LogConfig      `yaml:"logging" json:"logging"`               // Logging configuration
+	SSHHost       string         `yaml:"ssh_host,omitempty" json:"ssh_host,omitempty"` // Override SSH host for editor connection (e.g., LAN IP when using Tailscale SSH)
 }
 
 // ServerConfigFile represents server configuration file structure
