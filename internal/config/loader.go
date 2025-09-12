@@ -245,6 +245,12 @@ func GetDefaultServerConfig() *ServerConfigFile {
 				Available: true,
 			},
 			{
+				Name:      "zed",
+				Command:   "zed ssh://{user}@{host}/{path}",
+				Default:   false,
+				Available: true,
+			},
+			{
 				Name:      "nvim",
 				Command:   "nvim scp://{user}@{host}/{path}",
 				Default:   false,
