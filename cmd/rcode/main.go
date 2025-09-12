@@ -12,7 +12,7 @@ import (
 
 var (
 	// Version is set at build time
-	Version = "dev"
+	Version = "0.2.0"
 	// BuildTime is set at build time
 	BuildTime = "unknown"
 )
@@ -139,10 +139,34 @@ func run() int {
 			sshInfo.User = "unknown"
 		}
 	}
-	// Check if we have a configured SSH host override
-	if cfg.SSHHost != "" {
+	// Determine the appropriate host to use
+	// Priority: 1. Command-line flag, 2. Auto-detect Tailscale, 3. Config, 4. Default
+	switch {
+	case *host != "":
+		// Use the server host as the SSH host when -host flag is provided
+		// This ensures that when connecting via Tailscale (e.g., -host ws01tail),
+		// the same hostname is used for both the API request and the editor SSH connection
+		sshInfo.Host = *host
+	case cfg.AutoDetectTailscale:
+		// Try to auto-detect Tailscale connection if enabled
+		log.Debug("Attempting Tailscale auto-detection", "clientIP", sshInfo.ClientIP, "pattern", cfg.TailscaleHostPattern)
+		if tailHost, isTailscale := DetectTailscaleHost(sshInfo.ClientIP, cfg.TailscaleHostPattern); isTailscale {
+			log.Info("Detected Tailscale connection", "tailHost", tailHost, "clientIP", sshInfo.ClientIP)
+			sshInfo.Host = tailHost
+			// Also update the primary host for the server connection
+			cfg.Network.PrimaryHost = tailHost
+		} else {
+			log.Debug("No Tailscale connection detected")
+			if cfg.SSHHost != "" {
+				sshInfo.Host = cfg.SSHHost
+			} else if sshInfo.Host == "" {
+				// Only set fallback if truly empty
+				sshInfo.Host = "localhost"
+			}
+		}
+	case cfg.SSHHost != "":
 		sshInfo.Host = cfg.SSHHost
-	} else if sshInfo.Host == "" {
+	case sshInfo.Host == "":
 		// Only set fallback if truly empty
 		sshInfo.Host = "localhost"
 	}

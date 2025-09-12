@@ -274,7 +274,9 @@ func GetDefaultClientConfig() *ClientConfig {
 			RetryAttempts: DefaultRetryAttempts,
 			RetryDelay:    DefaultRetryDelay,
 		},
-		DefaultEditor: "cursor",
+		DefaultEditor:        "cursor",
+		AutoDetectTailscale:  true,
+		TailscaleHostPattern: "{hostname-}tail",
 		Logging: LogConfig{
 			Level:      DefaultLogLevel,
 			File:       filepath.Join(paths.LogDir, "client.log"),

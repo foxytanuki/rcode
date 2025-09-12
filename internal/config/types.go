@@ -62,11 +62,13 @@ type Config struct {
 
 // ClientConfig represents client-specific configuration
 type ClientConfig struct {
-	Network       NetworkConfig  `yaml:"network" json:"network"`                       // Network configuration
-	DefaultEditor string         `yaml:"default_editor" json:"default_editor"`         // Default editor name
-	Editors       []EditorConfig `yaml:"editors,omitempty" json:"editors,omitempty"`   // Editor overrides
-	Logging       LogConfig      `yaml:"logging" json:"logging"`                       // Logging configuration
-	SSHHost       string         `yaml:"ssh_host,omitempty" json:"ssh_host,omitempty"` // Override SSH host for editor connection (e.g., LAN IP when using Tailscale SSH)
+	Network              NetworkConfig  `yaml:"network" json:"network"`                                                   // Network configuration
+	DefaultEditor        string         `yaml:"default_editor" json:"default_editor"`                                     // Default editor name
+	Editors              []EditorConfig `yaml:"editors,omitempty" json:"editors,omitempty"`                               // Editor overrides
+	Logging              LogConfig      `yaml:"logging" json:"logging"`                                                   // Logging configuration
+	SSHHost              string         `yaml:"ssh_host,omitempty" json:"ssh_host,omitempty"`                             // Override SSH host for editor connection (e.g., LAN IP when using Tailscale SSH)
+	AutoDetectTailscale  bool           `yaml:"auto_detect_tailscale,omitempty" json:"auto_detect_tailscale,omitempty"`   // Enable automatic Tailscale detection
+	TailscaleHostPattern string         `yaml:"tailscale_host_pattern,omitempty" json:"tailscale_host_pattern,omitempty"` // Pattern for Tailscale hostname (e.g., "{hostname}tail")
 }
 
 // ServerConfigFile represents server configuration file structure
