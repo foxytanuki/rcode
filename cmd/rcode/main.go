@@ -141,13 +141,18 @@ func run() int {
 	}
 
 	// Determine the appropriate host to use
-	// Priority: 1. Command-line flag, 2. Auto-detect Tailscale, 3. SSH ClientIP (from ExtractSSHInfo), 4. Config ssh_host, 5. Default
+	// Priority: 1. Command-line flag, 2. Config ssh_host (explicit user preference), 3. Auto-detect Tailscale, 4. SSH ClientIP (from ExtractSSHInfo), 5. Default
 	switch {
 	case *host != "":
 		// Use the server host as the SSH host when -host flag is provided
 		// This ensures that when connecting via Tailscale (e.g., -host ws01tail),
 		// the same hostname is used for both the API request and the editor SSH connection
 		sshInfo.Host = *host
+	case cfg.SSHHost != "":
+		// Config ssh_host takes priority over auto-detected values
+		// This allows users to explicitly specify the hostname/IP for editor connections
+		sshInfo.Host = cfg.SSHHost
+		log.Debug("Using ssh_host from config", "host", sshInfo.Host)
 	case cfg.AutoDetectTailscale:
 		// Try to auto-detect Tailscale connection if enabled
 		log.Debug("Attempting Tailscale auto-detection", "clientIP", sshInfo.ClientIP, "pattern", cfg.TailscaleHostPattern)
@@ -158,28 +163,20 @@ func run() int {
 			cfg.Network.PrimaryHost = tailHost
 		} else {
 			log.Debug("No Tailscale connection detected")
-			// Use ClientIP from SSH_CONNECTION if available (most accurate)
+			// Use ClientIP from SSH_CONNECTION if available
 			if sshInfo.ClientIP != "" {
 				sshInfo.Host = sshInfo.ClientIP
 				log.Debug("Using ClientIP from SSH_CONNECTION", "host", sshInfo.Host)
-			} else if cfg.SSHHost != "" {
-				// Fallback to config ssh_host if ClientIP is not available
-				sshInfo.Host = cfg.SSHHost
-				log.Debug("Using ssh_host from config", "host", sshInfo.Host)
 			} else if sshInfo.Host == "" {
 				// Only set fallback if truly empty
 				sshInfo.Host = "localhost"
 			}
 		}
 	case sshInfo.ClientIP != "":
-		// Use ClientIP from SSH_CONNECTION (most accurate source)
+		// Use ClientIP from SSH_CONNECTION (fallback when no config specified)
 		// This is the IP address where we SSHed from
 		sshInfo.Host = sshInfo.ClientIP
 		log.Debug("Using ClientIP from SSH_CONNECTION", "host", sshInfo.Host)
-	case cfg.SSHHost != "":
-		// Fallback to config ssh_host if ClientIP is not available
-		sshInfo.Host = cfg.SSHHost
-		log.Debug("Using ssh_host from config", "host", sshInfo.Host)
 	case sshInfo.Host == "":
 		// Only set fallback if truly empty
 		sshInfo.Host = "localhost"
