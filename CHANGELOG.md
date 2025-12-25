@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-12-25
+
+### Fixed
+- SSH host detection now correctly prioritizes `ssh_host` from config file over `ClientIP` from `SSH_CONNECTION`
+  - Config file `ssh_host` is now checked before auto-detected `ClientIP`
+  - This allows users to explicitly specify the correct IP/hostname for editor connections
+  - Fixed issue where `192.168.1.34` (SSH client IP) was used instead of configured `192.168.1.40` (remote machine IP)
+
 ## [0.1.0] - 2025-12-25
 
 ### Added
@@ -16,12 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Service logs in `~/.local/share/rcode/logs/service.log`
 
 ### Changed
-- Improved SSH host detection: `ClientIP` from `SSH_CONNECTION` is now prioritized over config file `ssh_host`
-  - This ensures the actual SSH connection source IP is used for editor connections
-  - Config file `ssh_host` is now only used as a fallback when `ClientIP` is not available
-
-### Fixed
-- SSH host detection now correctly uses the IP address from the current SSH session instead of a fixed hostname from config
+- SSH host detection priority updated: config file `ssh_host` now takes priority over auto-detected `ClientIP`
+  - This allows users to explicitly specify the correct IP/hostname for editor connections
+  - `ClientIP` from `SSH_CONNECTION` is used as fallback when `ssh_host` is not configured
 
 ## [0.0.1] - 2025-08-03
 

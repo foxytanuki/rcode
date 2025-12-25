@@ -12,7 +12,7 @@ import (
 
 var (
 	// Version is set at build time
-	Version = "0.1.0"
+	Version = "0.1.1"
 	// BuildTime is set at build time
 	BuildTime = "unknown"
 )
