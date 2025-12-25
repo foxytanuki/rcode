@@ -142,12 +142,14 @@ func run() int {
 
 	// Determine the appropriate host to use
 	// Priority: 1. Command-line flag, 2. Config ssh_host (explicit user preference), 3. Auto-detect Tailscale, 4. SSH ClientIP (from ExtractSSHInfo), 5. Default
+	// Note: sshInfo.Host is intentionally left empty by ExtractSSHInfo() so we can determine it here
 	switch {
 	case *host != "":
 		// Use the server host as the SSH host when -host flag is provided
 		// This ensures that when connecting via Tailscale (e.g., -host ws01tail),
 		// the same hostname is used for both the API request and the editor SSH connection
 		sshInfo.Host = *host
+		log.Debug("Using host from command-line flag", "host", sshInfo.Host)
 	case cfg.SSHHost != "":
 		// Config ssh_host takes priority over auto-detected values
 		// This allows users to explicitly specify the hostname/IP for editor connections
@@ -167,9 +169,16 @@ func run() int {
 			if sshInfo.ClientIP != "" {
 				sshInfo.Host = sshInfo.ClientIP
 				log.Debug("Using ClientIP from SSH_CONNECTION", "host", sshInfo.Host)
-			} else if sshInfo.Host == "" {
-				// Only set fallback if truly empty
-				sshInfo.Host = "localhost"
+			} else {
+				// Fallback to hostname
+				hostname, err := os.Hostname()
+				if err == nil {
+					sshInfo.Host = hostname
+					log.Debug("Using hostname as fallback", "host", sshInfo.Host)
+				} else {
+					sshInfo.Host = "localhost"
+					log.Debug("Using localhost as final fallback")
+				}
 			}
 		}
 	case sshInfo.ClientIP != "":
@@ -177,9 +186,16 @@ func run() int {
 		// This is the IP address where we SSHed from
 		sshInfo.Host = sshInfo.ClientIP
 		log.Debug("Using ClientIP from SSH_CONNECTION", "host", sshInfo.Host)
-	case sshInfo.Host == "":
-		// Only set fallback if truly empty
-		sshInfo.Host = "localhost"
+	default:
+		// Final fallback
+		hostname, err := os.Hostname()
+		if err == nil {
+			sshInfo.Host = hostname
+			log.Debug("Using hostname as fallback", "host", sshInfo.Host)
+		} else {
+			sshInfo.Host = "localhost"
+			log.Debug("Using localhost as final fallback")
+		}
 	}
 
 	// Log the request details

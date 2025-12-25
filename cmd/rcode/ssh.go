@@ -57,19 +57,8 @@ func ExtractSSHInfo() (SSHInfo, error) {
 		info.User = os.Getenv("LOGNAME")
 	}
 
-	// By default, use the client IP (where we SSHed from) as the host
-	// This is the machine where the editor will connect back to
-	if info.ClientIP != "" {
-		info.Host = info.ClientIP
-	} else {
-		// Fallback to hostname if no SSH connection info
-		hostname, err := os.Hostname()
-		if err == nil {
-			info.Host = hostname
-		} else {
-			info.Host = "localhost"
-		}
-	}
+	// Note: Host is NOT set here - it will be determined in main.go
+	// based on priority: config ssh_host > ClientIP > hostname > localhost
 
 	// Check if we're actually in an SSH session
 	if sshConnection == "" && os.Getenv("SSH_CLIENT") == "" && os.Getenv("SSH_TTY") == "" {
