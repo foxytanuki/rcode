@@ -100,6 +100,15 @@ func run() int {
 		return 0
 	}
 
+	// Debug: Log loaded configuration values
+	if *verbose {
+		log.Debug("Loaded configuration",
+			"ssh_host", cfg.SSHHost,
+			"primary_host", cfg.Network.PrimaryHost,
+			"auto_detect_tailscale", cfg.AutoDetectTailscale,
+		)
+	}
+
 	// Create client
 	client := NewClient(cfg, log)
 
@@ -238,6 +247,11 @@ func showConfiguration(cfg *config.ClientConfig) {
 	}
 	fmt.Printf("  Timeout: %v\n", cfg.Network.Timeout)
 	fmt.Printf("  Retry Attempts: %d\n", cfg.Network.RetryAttempts)
+	fmt.Printf("\nSSH Host: %s\n", cfg.SSHHost)
+	fmt.Printf("Auto-detect Tailscale: %v\n", cfg.AutoDetectTailscale)
+	if cfg.TailscaleHostPattern != "" {
+		fmt.Printf("Tailscale Host Pattern: %s\n", cfg.TailscaleHostPattern)
+	}
 	fmt.Printf("\nDefault Editor: %s\n", cfg.DefaultEditor)
 
 	if len(cfg.Editors) > 0 {
