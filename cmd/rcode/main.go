@@ -139,8 +139,9 @@ func run() int {
 			sshInfo.User = "unknown"
 		}
 	}
+
 	// Determine the appropriate host to use
-	// Priority: 1. Command-line flag, 2. Auto-detect Tailscale, 3. Config, 4. Default
+	// Priority: 1. Command-line flag, 2. Auto-detect Tailscale, 3. SSH ClientIP (from ExtractSSHInfo), 4. Config ssh_host, 5. Default
 	switch {
 	case *host != "":
 		// Use the server host as the SSH host when -host flag is provided
@@ -157,15 +158,28 @@ func run() int {
 			cfg.Network.PrimaryHost = tailHost
 		} else {
 			log.Debug("No Tailscale connection detected")
-			if cfg.SSHHost != "" {
+			// Use ClientIP from SSH_CONNECTION if available (most accurate)
+			if sshInfo.ClientIP != "" {
+				sshInfo.Host = sshInfo.ClientIP
+				log.Debug("Using ClientIP from SSH_CONNECTION", "host", sshInfo.Host)
+			} else if cfg.SSHHost != "" {
+				// Fallback to config ssh_host if ClientIP is not available
 				sshInfo.Host = cfg.SSHHost
+				log.Debug("Using ssh_host from config", "host", sshInfo.Host)
 			} else if sshInfo.Host == "" {
 				// Only set fallback if truly empty
 				sshInfo.Host = "localhost"
 			}
 		}
+	case sshInfo.ClientIP != "":
+		// Use ClientIP from SSH_CONNECTION (most accurate source)
+		// This is the IP address where we SSHed from
+		sshInfo.Host = sshInfo.ClientIP
+		log.Debug("Using ClientIP from SSH_CONNECTION", "host", sshInfo.Host)
 	case cfg.SSHHost != "":
+		// Fallback to config ssh_host if ClientIP is not available
 		sshInfo.Host = cfg.SSHHost
+		log.Debug("Using ssh_host from config", "host", sshInfo.Host)
 	case sshInfo.Host == "":
 		// Only set fallback if truly empty
 		sshInfo.Host = "localhost"
