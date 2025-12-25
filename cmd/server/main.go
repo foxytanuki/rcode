@@ -19,7 +19,7 @@ import (
 
 var (
 	// Version is set at build time
-	Version = "dev"
+	Version = "0.1.0"
 	// BuildTime is set at build time
 	BuildTime = "unknown"
 )
@@ -31,16 +31,16 @@ func main() {
 func run() int {
 	// Parse command-line flags
 	var (
-		configFile     = flag.String("config", "", "Path to configuration file")
-		host           = flag.String("host", "", "Server host to bind to")
-		port           = flag.Int("port", 0, "Server port")
-		logLevel       = flag.String("log-level", "", "Log level (debug, info, warn, error)")
-		showVersion    = flag.Bool("version", false, "Show version information")
-		installService = flag.Bool("install-service", false, "Install rcode-server as a system service")
+		configFile       = flag.String("config", "", "Path to configuration file")
+		host             = flag.String("host", "", "Server host to bind to")
+		port             = flag.Int("port", 0, "Server port")
+		logLevel         = flag.String("log-level", "", "Log level (debug, info, warn, error)")
+		showVersion      = flag.Bool("version", false, "Show version information")
+		installService   = flag.Bool("install-service", false, "Install rcode-server as a system service")
 		uninstallService = flag.Bool("uninstall-service", false, "Uninstall rcode-server system service")
-		startService   = flag.Bool("start-service", false, "Start rcode-server service")
-		stopService    = flag.Bool("stop-service", false, "Stop rcode-server service")
-		statusService  = flag.Bool("status-service", false, "Check status of rcode-server service")
+		startService     = flag.Bool("start-service", false, "Start rcode-server service")
+		stopService      = flag.Bool("stop-service", false, "Stop rcode-server service")
+		statusService    = flag.Bool("status-service", false, "Check status of rcode-server service")
 	)
 	flag.Parse()
 
