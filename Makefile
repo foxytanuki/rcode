@@ -210,3 +210,28 @@ install-hooks:
 ## run-hooks: Run git hooks manually
 run-hooks:
 	@mise exec lefthook -- lefthook run pre-commit
+
+## install-service: Install rcode-server as a system service
+install-service: build-server
+	@echo "Installing rcode-server as a system service..."
+	@sudo cp $(BUILD_DIR)/$(BINARY_NAME_SERVER) $(INSTALL_DIR)/
+	@$(INSTALL_DIR)/$(BINARY_NAME_SERVER) -install-service
+	@echo "Service installed. It will start automatically on login."
+
+## uninstall-service: Uninstall rcode-server system service
+uninstall-service:
+	@echo "Uninstalling rcode-server service..."
+	@$(INSTALL_DIR)/$(BINARY_NAME_SERVER) -uninstall-service || true
+	@echo "Service uninstalled."
+
+## start-service: Start rcode-server service
+start-service:
+	@$(INSTALL_DIR)/$(BINARY_NAME_SERVER) -start-service
+
+## stop-service: Stop rcode-server service
+stop-service:
+	@$(INSTALL_DIR)/$(BINARY_NAME_SERVER) -stop-service
+
+## status-service: Check status of rcode-server service
+status-service:
+	@$(INSTALL_DIR)/$(BINARY_NAME_SERVER) -status-service

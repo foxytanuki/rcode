@@ -84,6 +84,29 @@ sudo cp bin/* /usr/local/bin/
 
 On your Mac or Linux host machine where your editors are installed:
 
+#### Option A: Install as System Service (Recommended)
+
+Install rcode-server as a system service that starts automatically on login:
+
+```bash
+# Install the service (one-time setup)
+rcode-server -install-service
+
+# Check service status
+rcode-server -status-service
+
+# Manually start/stop if needed
+rcode-server -start-service
+rcode-server -stop-service
+```
+
+**macOS**: The service will be installed as a launchd user agent and start automatically on login.  
+**Linux**: The service will be installed as a systemd user service and start automatically on login.
+
+#### Option B: Run Manually
+
+If you prefer to run the server manually:
+
 ```bash
 rcode-server
 ```
@@ -93,6 +116,8 @@ The server will start on port 3000 and display:
 INFO Starting rcode-server version=0.0.1 host=0.0.0.0 port=3000
 INFO Server listening address=0.0.0.0:3000
 ```
+
+**Note**: With the manual approach, you'll need to keep the terminal open. The service approach (Option A) is recommended for convenience.
 
 ### Step 2: Configure the Client (Remote Machine)
 
@@ -140,6 +165,29 @@ rcode --list-editors
 ```
 
 ## ⚙️ Configuration
+
+### Service Management
+
+Manage rcode-server as a system service:
+
+```bash
+# Install service (starts automatically on login)
+rcode-server -install-service
+
+# Uninstall service
+rcode-server -uninstall-service
+
+# Start/stop service manually
+rcode-server -start-service
+rcode-server -stop-service
+
+# Check service status
+rcode-server -status-service
+```
+
+**Service Logs**:
+- macOS: `~/.local/share/rcode/logs/service.log`
+- Linux: `~/.local/share/rcode/logs/service.log`
 
 ### Server Configuration
 
