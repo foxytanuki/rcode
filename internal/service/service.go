@@ -10,6 +10,8 @@ import (
 )
 
 // ServiceManager handles service installation and management
+//
+//nolint:revive // ServiceManager is a clear name and the package is not intended to be shortened
 type ServiceManager struct {
 	binaryPath string
 	configPath string
@@ -114,10 +116,13 @@ func (sm *ServiceManager) installDarwin() error {
 	}
 
 	// Load the service
+	//nolint:gosec // G204: plistPath is a controlled path constructed from user home directory
 	cmd := exec.Command("launchctl", "load", plistPath)
 	if err := cmd.Run(); err != nil {
 		// If already loaded, try to unload first
+		//nolint:gosec // G204: plistPath is a controlled path constructed from user home directory
 		_ = exec.Command("launchctl", "unload", plistPath).Run()
+		//nolint:gosec // G204: plistPath is a controlled path constructed from user home directory
 		cmd = exec.Command("launchctl", "load", plistPath)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to load service: %w", err)
@@ -134,6 +139,7 @@ func (sm *ServiceManager) uninstallDarwin() error {
 	plistPath := filepath.Join(sm.userHome, "Library", "LaunchAgents", "com.foxytanuki.rcode-server.plist")
 
 	// Unload the service if it's running
+	//nolint:gosec // G204: plistPath is a controlled path constructed from user home directory
 	_ = exec.Command("launchctl", "unload", plistPath).Run()
 
 	// Remove the plist file
