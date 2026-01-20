@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-01-20
+
+### Changed
+- **Default Port**: Changed default server port from 3000 to 3339 to avoid conflicts with common development tools
+
+### Fixed
+- Fixed gosec nolint comments in service.go (use `#nosec G204` format)
+- Fixed revive linter warnings for `api` package name
+
 ## [0.2.0] - 2026-01-20
 
 ### Changed
