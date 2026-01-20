@@ -4,7 +4,7 @@
 
 The RCode server exposes a simple HTTP REST API for opening editors on the host machine from remote clients.
 
-Base URL: `http://<host>:3000`
+Base URL: `http://<host>:3339`
 
 ## Authentication
 
@@ -192,7 +192,7 @@ Becomes: `cursor --remote ssh-remote+alice@server.com /home/project`
 
 **Open a file in the default editor:**
 ```bash
-curl -X POST http://192.168.1.100:3000/open-editor \
+curl -X POST http://192.168.1.100:3339/open-editor \
   -H "Content-Type: application/json" \
   -d '{
     "path": "/home/alice/project",
@@ -203,7 +203,7 @@ curl -X POST http://192.168.1.100:3000/open-editor \
 
 **Open a file in a specific editor:**
 ```bash
-curl -X POST http://192.168.1.100:3000/open-editor \
+curl -X POST http://192.168.1.100:3339/open-editor \
   -H "Content-Type: application/json" \
   -d '{
     "path": "/home/alice/project",
@@ -215,12 +215,12 @@ curl -X POST http://192.168.1.100:3000/open-editor \
 
 **Check server health:**
 ```bash
-curl http://192.168.1.100:3000/health
+curl http://192.168.1.100:3339/health
 ```
 
 **List available editors:**
 ```bash
-curl http://192.168.1.100:3000/editors
+curl http://192.168.1.100:3339/editors
 ```
 
 ### Python Example
@@ -230,7 +230,7 @@ import requests
 import json
 
 def open_editor(path, editor=None):
-    url = "http://192.168.1.100:3000/open-editor"
+    url = "http://192.168.1.100:3339/open-editor"
     data = {
         "path": path,
         "user": "alice",

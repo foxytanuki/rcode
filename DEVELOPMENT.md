@@ -169,7 +169,7 @@ Example:
 ```yaml
 server:
   host: "0.0.0.0"
-  port: 3000
+  port: 3339
   
 editors:
   - name: cursor
@@ -255,7 +255,7 @@ make build
 
 ### Permission Issues
 - Ensure config directories exist and are writable
-- Server needs permission to bind to port (default 3000)
+- Server needs permission to bind to port (default 3339)
 - Client needs permission to read SSH environment variables
 
 ## Contributing

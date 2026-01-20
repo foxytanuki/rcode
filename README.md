@@ -15,7 +15,7 @@ RCode enables seamless code editing when working on remote servers. Open files f
 ```mermaid
 graph LR
     A[Remote Machine] -->|rcode /path| B[HTTP Request]
-    B --> C[Host Machine :3000]
+    B --> C[Host Machine :3339]
     C --> D[Launch Editor]
     D --> E[Editor Opens with SSH Remote]
 ```
@@ -111,10 +111,10 @@ If you prefer to run the server manually:
 rcode-server
 ```
 
-The server will start on port 3000 and display:
+The server will start on port 3339 and display:
 ```
-INFO Starting rcode-server version=0.2.0 host=0.0.0.0 port=3000
-INFO Server listening address=0.0.0.0:3000
+INFO Starting rcode-server version=0.2.0 host=0.0.0.0 port=3339
+INFO Server listening address=0.0.0.0:3339
 ```
 
 **Note**: With the manual approach, you'll need to keep the terminal open. The service approach (Option A) is recommended for convenience.
@@ -278,12 +278,12 @@ RCode server exposes a REST API. See [docs/API.md](docs/API.md) for complete doc
 Quick example:
 ```bash
 # Open editor via API
-curl -X POST http://localhost:3000/open-editor \
+curl -X POST http://localhost:3339/open-editor \
   -H "Content-Type: application/json" \
   -d '{"path": "/home/project", "user": "alice", "host": "server"}'
 
 # Check health
-curl http://localhost:3000/health
+curl http://localhost:3339/health
 ```
 
 ## 🔧 Troubleshooting
@@ -296,17 +296,17 @@ curl http://localhost:3000/health
 sudo pfctl -d  # Temporarily disable firewall
 
 # Linux
-sudo ufw allow 3000  # Allow port 3000
+sudo ufw allow 3339  # Allow port 3339
 ```
 
 2. Verify server is running:
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:3339/health
 ```
 
 3. Test from remote:
 ```bash
-telnet YOUR_HOST_IP 3000
+telnet YOUR_HOST_IP 3339
 ```
 
 ### Editor not opening

@@ -234,7 +234,7 @@ func createTestServer() *Server {
 	cfg := &config.ServerConfigFile{
 		Server: config.ServerConfig{
 			Host:         "localhost",
-			Port:         3000,
+			Port:         3339,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  120 * time.Second,

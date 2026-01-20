@@ -93,7 +93,7 @@ func (c *Client) OpenEditor(path, editor string, sshInfo *SSHInfo) error {
 func (c *Client) sendRequest(host string, req api.OpenRequest) error {
 	// Ensure host includes port
 	if !strings.Contains(host, ":") {
-		host = fmt.Sprintf("%s:3000", host)
+		host = fmt.Sprintf("%s:3339", host)
 	}
 
 	// Build URL
@@ -220,7 +220,7 @@ func (c *Client) ListEditors() error {
 func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
 	// Ensure host includes port
 	if !strings.Contains(host, ":") {
-		host = fmt.Sprintf("%s:3000", host)
+		host = fmt.Sprintf("%s:3339", host)
 	}
 
 	// Build URL
@@ -356,7 +356,7 @@ func (c *Client) CheckHealth() error {
 func (c *Client) checkHostHealth(host string) (bool, error) {
 	// Ensure host includes port
 	if !strings.Contains(host, ":") {
-		host = fmt.Sprintf("%s:3000", host)
+		host = fmt.Sprintf("%s:3339", host)
 	}
 
 	// Build URL

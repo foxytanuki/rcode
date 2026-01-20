@@ -82,7 +82,7 @@ type ServerConfigFile struct {
 // Default configuration values
 const (
 	DefaultServerHost    = "0.0.0.0"
-	DefaultServerPort    = 3000
+	DefaultServerPort    = 3339
 	DefaultTimeout       = 2 * time.Second
 	DefaultRetryAttempts = 3
 	DefaultRetryDelay    = 500 * time.Millisecond

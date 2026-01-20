@@ -11,7 +11,7 @@ Remote Code Launcher (rcode) - A Go-based system that allows launching host mach
 ### System Components
 
 1. **rcode-server** (Host/Mac side)
-   - HTTP server running on port 3000
+   - HTTP server running on port 3339
    - Receives editor launch requests from remote clients
    - Executes editor commands locally
    - Endpoints: `/open-editor` (POST), `/health` (GET), `/editors` (GET)

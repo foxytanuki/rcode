@@ -7,7 +7,7 @@ server:
   host: "0.0.0.0"
   
   # Port to listen on
-  port: 3000
+  port: 3339
   
   # HTTP timeouts
   read_timeout: 10s

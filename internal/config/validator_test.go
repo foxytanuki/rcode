@@ -18,7 +18,7 @@ func TestValidateServerConfig(t *testing.T) {
 			config: ServerConfigFile{
 				Server: ServerConfig{
 					Host:         "0.0.0.0",
-					Port:         3000,
+					Port:         3339,
 					ReadTimeout:  10 * time.Second,
 					WriteTimeout: 10 * time.Second,
 					IdleTimeout:  120 * time.Second,
@@ -54,7 +54,7 @@ func TestValidateServerConfig(t *testing.T) {
 			name: "invalid IP in whitelist",
 			config: ServerConfigFile{
 				Server: ServerConfig{
-					Port:       3000,
+					Port:       3339,
 					AllowedIPs: []string{"192.168.1.1", "invalid-ip"},
 				},
 				Editors: []EditorConfig{
@@ -69,7 +69,7 @@ func TestValidateServerConfig(t *testing.T) {
 			name: "no editors",
 			config: ServerConfigFile{
 				Server: ServerConfig{
-					Port: 3000,
+					Port: 3339,
 				},
 				Editors: []EditorConfig{},
 				Logging: LogConfig{Level: "info"},
@@ -81,7 +81,7 @@ func TestValidateServerConfig(t *testing.T) {
 			name: "multiple default editors",
 			config: ServerConfigFile{
 				Server: ServerConfig{
-					Port: 3000,
+					Port: 3339,
 				},
 				Editors: []EditorConfig{
 					{Name: "cursor", Command: "cursor {path}", Default: true},
@@ -96,7 +96,7 @@ func TestValidateServerConfig(t *testing.T) {
 			name: "duplicate editor names",
 			config: ServerConfigFile{
 				Server: ServerConfig{
-					Port: 3000,
+					Port: 3339,
 				},
 				Editors: []EditorConfig{
 					{Name: "cursor", Command: "cursor {path}"},
@@ -111,7 +111,7 @@ func TestValidateServerConfig(t *testing.T) {
 			name: "missing required placeholder",
 			config: ServerConfigFile{
 				Server: ServerConfig{
-					Port: 3000,
+					Port: 3339,
 				},
 				Editors: []EditorConfig{
 					{Name: "cursor", Command: "cursor --remote"},
@@ -125,7 +125,7 @@ func TestValidateServerConfig(t *testing.T) {
 			name: "invalid log level",
 			config: ServerConfigFile{
 				Server: ServerConfig{
-					Port: 3000,
+					Port: 3339,
 				},
 				Editors: []EditorConfig{
 					{Name: "cursor", Command: "cursor {path}"},
