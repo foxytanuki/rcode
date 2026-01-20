@@ -1,3 +1,4 @@
+//nolint:revive // package name "api" is conventional for API type definitions
 package api
 
 import "time"

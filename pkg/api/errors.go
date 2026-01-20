@@ -1,4 +1,6 @@
 // Package api defines the API types and interfaces for rcode.
+//
+//nolint:revive // package name "api" is conventional for API type definitions
 package api
 
 import (
