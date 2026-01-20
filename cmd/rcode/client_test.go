@@ -226,67 +226,77 @@ func TestClient_CheckHealth(t *testing.T) {
 }
 
 func TestClient_GetManualCommand(t *testing.T) {
+	// Note: GetManualCommand now tries to fetch from server first, then falls back
+	// to well-known editor commands. These tests verify the fallback behavior
+	// when server is not available.
 	tests := []struct {
 		name    string
 		path    string
 		editor  string
 		sshInfo SSHInfo
-		editors []config.EditorConfig
 		want    string
 	}{
 		{
-			name:   "configured editor",
-			path:   "/home/project",
-			editor: "test-editor",
-			sshInfo: SSHInfo{
-				User: "alice",
-				Host: "server.com",
-			},
-			editors: []config.EditorConfig{
-				{Name: "test-editor", Command: "editor --remote {user}@{host} {path}"},
-			},
-			want: "editor --remote alice@server.com /home/project",
-		},
-		{
-			name:   "default cursor command",
+			name:   "fallback cursor command",
 			path:   "/home/project",
 			editor: "cursor",
 			sshInfo: SSHInfo{
 				User: "bob",
 				Host: "example.com",
 			},
-			editors: []config.EditorConfig{},
-			want:    "cursor --remote ssh-remote+bob@example.com /home/project",
+			want: "cursor --remote ssh-remote+bob@example.com /home/project",
 		},
 		{
-			name:   "default vscode command",
+			name:   "fallback vscode command",
 			path:   "/home/project",
 			editor: "vscode",
 			sshInfo: SSHInfo{
 				User: "charlie",
 				Host: "dev.local",
 			},
-			editors: []config.EditorConfig{},
-			want:    "code --remote ssh-remote+charlie@dev.local /home/project",
+			want: "code --remote ssh-remote+charlie@dev.local /home/project",
 		},
 		{
-			name:   "default nvim command",
+			name:   "fallback nvim command",
 			path:   "/home/project",
 			editor: "nvim",
 			sshInfo: SSHInfo{
 				User: "dave",
 				Host: "remote.net",
 			},
-			editors: []config.EditorConfig{},
-			want:    "nvim scp://dave@remote.net//home/project",
+			want: "nvim scp://dave@remote.net//home/project",
+		},
+		{
+			name:   "fallback zed command",
+			path:   "/home/project",
+			editor: "zed",
+			sshInfo: SSHInfo{
+				User: "eve",
+				Host: "zed.local",
+			},
+			want: "zed ssh://eve@zed.local//home/project",
+		},
+		{
+			name:   "unknown editor returns empty",
+			path:   "/home/project",
+			editor: "unknown-editor",
+			sshInfo: SSHInfo{
+				User: "frank",
+				Host: "example.com",
+			},
+			want: "",
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt // Capture range variable
 		t.Run(tt.name, func(t *testing.T) {
+			// Use a non-existent host to ensure fallback behavior is tested
 			cfg := &config.ClientConfig{
-				Editors: tt.editors,
+				Network: config.NetworkConfig{
+					PrimaryHost: "127.0.0.1:19999", // Non-existent server
+					Timeout:     100 * time.Millisecond,
+				},
 				Logging: config.LogConfig{
 					Level: "error",
 				},

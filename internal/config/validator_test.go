@@ -183,6 +183,19 @@ func TestValidateClientConfig(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid config with any default editor name",
+			config: ClientConfig{
+				Network: NetworkConfig{
+					PrimaryHost: "192.168.1.100",
+				},
+				DefaultEditor: "sublime", // Any editor name is valid - validation happens on server
+				Logging: LogConfig{
+					Level: "info",
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "missing primary host",
 			config: ClientConfig{
 				Network: NetworkConfig{
@@ -208,24 +221,6 @@ func TestValidateClientConfig(t *testing.T) {
 			},
 			wantErr: true,
 			errMsg:  "timeout cannot be negative",
-		},
-		{
-			name: "default editor not in list",
-			config: ClientConfig{
-				Network: NetworkConfig{
-					PrimaryHost: "192.168.1.100",
-				},
-				DefaultEditor: "sublime",
-				Editors: []EditorConfig{
-					{Name: "cursor", Command: "cursor {path}"},
-					{Name: "vscode", Command: "code {path}"},
-				},
-				Logging: LogConfig{
-					Level: "info",
-				},
-			},
-			wantErr: true,
-			errMsg:  "default editor 'sublime' not found in editors list",
 		},
 	}
 

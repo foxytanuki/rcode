@@ -332,13 +332,7 @@ func showConfiguration(cfg *config.ClientConfig) {
 		fmt.Printf("Tailscale Host Pattern: %s\n", cfg.TailscaleHostPattern)
 	}
 	fmt.Printf("\nDefault Editor: %s\n", cfg.DefaultEditor)
-
-	if len(cfg.Editors) > 0 {
-		fmt.Printf("\nConfigured Editors:\n")
-		for _, editor := range cfg.Editors {
-			fmt.Printf("  - %s: %s\n", editor.Name, editor.Command)
-		}
-	}
+	fmt.Printf("  (Editor definitions are fetched from the server. Use --list-editors to see available editors.)\n")
 
 	fmt.Printf("\nLogging:\n")
 	fmt.Printf("  Level: %s\n", cfg.Logging.Level)

@@ -61,14 +61,15 @@ type Config struct {
 }
 
 // ClientConfig represents client-specific configuration
+// Note: Editor definitions are centralized on the server. The client only stores
+// the name of the default editor to use, not the command templates.
 type ClientConfig struct {
-	Network              NetworkConfig  `yaml:"network" json:"network"`                                                   // Network configuration
-	DefaultEditor        string         `yaml:"default_editor" json:"default_editor"`                                     // Default editor name
-	Editors              []EditorConfig `yaml:"editors,omitempty" json:"editors,omitempty"`                               // Editor overrides
-	Logging              LogConfig      `yaml:"logging" json:"logging"`                                                   // Logging configuration
-	SSHHost              string         `yaml:"ssh_host,omitempty" json:"ssh_host,omitempty"`                             // Override SSH host for editor connection (e.g., LAN IP when using Tailscale SSH)
-	AutoDetectTailscale  bool           `yaml:"auto_detect_tailscale,omitempty" json:"auto_detect_tailscale,omitempty"`   // Enable automatic Tailscale detection
-	TailscaleHostPattern string         `yaml:"tailscale_host_pattern,omitempty" json:"tailscale_host_pattern,omitempty"` // Pattern for Tailscale hostname (e.g., "{hostname}tail")
+	Network              NetworkConfig `yaml:"network" json:"network"`                                                   // Network configuration
+	DefaultEditor        string        `yaml:"default_editor" json:"default_editor"`                                     // Default editor name (validated against server)
+	Logging              LogConfig     `yaml:"logging" json:"logging"`                                                   // Logging configuration
+	SSHHost              string        `yaml:"ssh_host,omitempty" json:"ssh_host,omitempty"`                             // Override SSH host for editor connection (e.g., LAN IP when using Tailscale SSH)
+	AutoDetectTailscale  bool          `yaml:"auto_detect_tailscale,omitempty" json:"auto_detect_tailscale,omitempty"`   // Enable automatic Tailscale detection
+	TailscaleHostPattern string        `yaml:"tailscale_host_pattern,omitempty" json:"tailscale_host_pattern,omitempty"` // Pattern for Tailscale hostname (e.g., "{hostname}tail")
 }
 
 // ServerConfigFile represents server configuration file structure
@@ -137,21 +138,9 @@ func (c *Config) GetEditor(name string) *EditorConfig {
 	return nil
 }
 
-// GetDefaultEditor returns the default editor for client config
-func (c *ClientConfig) GetDefaultEditor() *EditorConfig {
-	// Check if DefaultEditor is set
-	if c.DefaultEditor != "" {
-		for i := range c.Editors {
-			if c.Editors[i].Name == c.DefaultEditor {
-				return &c.Editors[i]
-			}
-		}
-	}
-
-	// Return first editor if any exist
-	if len(c.Editors) > 0 {
-		return &c.Editors[0]
-	}
-
-	return nil
+// GetDefaultEditorName returns the default editor name for client config
+// Note: The client no longer stores editor command templates locally.
+// Editor validation and command templates are fetched from the server.
+func (c *ClientConfig) GetDefaultEditorName() string {
+	return c.DefaultEditor
 }
