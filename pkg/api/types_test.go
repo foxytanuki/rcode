@@ -1,3 +1,4 @@
+//nolint:revive // package name "api" is intentional for internal testing
 package api
 
 import (

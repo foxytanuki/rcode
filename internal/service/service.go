@@ -116,14 +116,11 @@ func (sm *ServiceManager) installDarwin() error {
 	}
 
 	// Load the service
-	//nolint:gosec // G204: plistPath is a controlled path constructed from user home directory
-	cmd := exec.Command("launchctl", "load", plistPath)
+	cmd := exec.Command("launchctl", "load", plistPath) // #nosec G204 -- plistPath is constructed from user home directory
 	if err := cmd.Run(); err != nil {
 		// If already loaded, try to unload first
-		//nolint:gosec // G204: plistPath is a controlled path constructed from user home directory
-		_ = exec.Command("launchctl", "unload", plistPath).Run()
-		//nolint:gosec // G204: plistPath is a controlled path constructed from user home directory
-		cmd = exec.Command("launchctl", "load", plistPath)
+		_ = exec.Command("launchctl", "unload", plistPath).Run() // #nosec G204 -- plistPath is constructed from user home directory
+		cmd = exec.Command("launchctl", "load", plistPath)       // #nosec G204 -- plistPath is constructed from user home directory
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to load service: %w", err)
 		}
@@ -139,8 +136,7 @@ func (sm *ServiceManager) uninstallDarwin() error {
 	plistPath := filepath.Join(sm.userHome, "Library", "LaunchAgents", "com.foxytanuki.rcode-server.plist")
 
 	// Unload the service if it's running
-	//nolint:gosec // G204: plistPath is a controlled path constructed from user home directory
-	_ = exec.Command("launchctl", "unload", plistPath).Run()
+	_ = exec.Command("launchctl", "unload", plistPath).Run() // #nosec G204 -- plistPath is constructed from user home directory
 
 	// Remove the plist file
 	if err := os.Remove(plistPath); err != nil && !os.IsNotExist(err) {
