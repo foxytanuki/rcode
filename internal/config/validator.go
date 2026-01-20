@@ -145,6 +145,8 @@ func ValidateServerConfig(config *ServerConfigFile) error {
 }
 
 // ValidateClientConfig validates client configuration
+// Note: Editor validation against the server's editor list is done at runtime,
+// not during config validation, since editors are centralized on the server.
 func ValidateClientConfig(config *ClientConfig) error {
 	var errors ValidationErrors
 
@@ -177,22 +179,9 @@ func ValidateClientConfig(config *ClientConfig) error {
 		})
 	}
 
-	// Validate default editor if specified
-	if config.DefaultEditor != "" && len(config.Editors) > 0 {
-		found := false
-		for _, editor := range config.Editors {
-			if editor.Name == config.DefaultEditor {
-				found = true
-				break
-			}
-		}
-		if !found {
-			errors = append(errors, ValidationError{
-				Field:   "default_editor",
-				Message: fmt.Sprintf("default editor '%s' not found in editors list", config.DefaultEditor),
-			})
-		}
-	}
+	// Note: DefaultEditor is not validated here because editor definitions
+	// are centralized on the server. The server will validate the editor name
+	// when processing the open-editor request.
 
 	// Validate logging
 	if err := validateLogConfig(&config.Logging); err != nil {

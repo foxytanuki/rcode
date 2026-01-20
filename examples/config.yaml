@@ -6,19 +6,20 @@ network:
   # Primary host (your Mac/host machine's IP on LAN)
   # Find this with: ifconfig | grep "inet " | grep -v 127.0.0.1
   primary_host: "192.168.1.100"
-  
+
   # Fallback host (optional - e.g., Tailscale IP)
   # Find this with: tailscale ip -4
   fallback_host: "100.64.0.1"
-  
+
   # Connection timeout
   timeout: 2s
-  
+
   # Retry configuration
   retry_attempts: 3
   retry_delay: 500ms
 
-# Default editor to use (must match a name in server config)
+# Default editor to use (must match a name configured on the server)
+# Use 'rcode --list-editors' to see available editors from the server
 default_editor: cursor
 
 # Optional: Override SSH host for editor connection
@@ -28,31 +29,29 @@ default_editor: cursor
 # ssh_host: "dev-machine"      # Use hostname from ~/.ssh/config
 # ssh_host: ""                 # Empty = use auto-detection (default)
 
-# Optional: Override editor commands locally
-# This is useful if you want different commands than the server defaults
-editors:
-  - name: cursor
-    command: "cursor --remote ssh-remote+{user}@{host} {path}"
-  
-  - name: vscode
-    command: "code --remote ssh-remote+{user}@{host} {path}"
-  
-  - name: nvim
-    command: "nvim scp://{user}@{host}/{path}"
+# Optional: Automatic Tailscale detection
+# When enabled, the client will detect if you're connected via Tailscale
+# and adjust the hostname accordingly
+auto_detect_tailscale: true
+tailscale_host_pattern: "{hostname-}tail"
+
+# Note: Editor definitions (command templates) are centralized on the server.
+# The client only needs to know the editor NAME, not the command.
+# This simplifies configuration and ensures consistency across all clients.
 
 # Logging configuration
 logging:
   # Log level: debug, info, warn, error
   level: info
-  
+
   # Log file path
   file: "~/.local/share/rcode/logs/client.log"
-  
+
   # Log rotation settings
   max_size: 10      # MB
   max_backups: 5    # Number of old files to keep
   max_age: 30       # Days
   compress: true    # Compress rotated files
-  
+
   # Log to console (override with --verbose flag)
   console: false

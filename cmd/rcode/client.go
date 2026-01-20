@@ -264,28 +264,26 @@ func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
 }
 
 // GetManualCommand generates a manual command that can be run on the host
+// It first tries to fetch the command template from the server.
+// If the server is unreachable, it falls back to well-known editor commands.
 func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string {
 	// Use default editor if not specified
 	if editor == "" {
 		editor = c.config.DefaultEditor
 	}
 
-	// Find editor configuration
-	var editorCmd string
-	for _, e := range c.config.Editors {
-		if e.Name == editor {
-			editorCmd = e.Command
-			break
-		}
-	}
+	// Try to fetch editor command from server
+	editorCmd := c.fetchEditorCommand(editor)
 
 	if editorCmd == "" {
-		// Use a generic command
+		// Fall back to well-known editor commands if server is unreachable
 		switch editor {
 		case "cursor":
 			editorCmd = "cursor --remote ssh-remote+{user}@{host} {path}"
 		case "vscode", "code":
 			editorCmd = "code --remote ssh-remote+{user}@{host} {path}"
+		case "zed":
+			editorCmd = "zed ssh://{user}@{host}/{path}"
 		case "nvim", "neovim":
 			editorCmd = "nvim scp://{user}@{host}/{path}"
 		default:
@@ -299,6 +297,30 @@ func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string 
 	cmd = strings.ReplaceAll(cmd, "{path}", path)
 
 	return cmd
+}
+
+// fetchEditorCommand fetches the command template for a specific editor from the server
+func (c *Client) fetchEditorCommand(editorName string) string {
+	// Try primary host first
+	editors, err := c.fetchEditors(c.config.Network.PrimaryHost)
+	if err != nil && c.config.Network.FallbackHost != "" {
+		// Try fallback host
+		editors, err = c.fetchEditors(c.config.Network.FallbackHost)
+	}
+
+	if err != nil {
+		c.log.Debug("Failed to fetch editors from server", "error", err)
+		return ""
+	}
+
+	// Find the editor command
+	for _, editor := range editors.Editors {
+		if editor.Name == editorName {
+			return editor.Command
+		}
+	}
+
+	return ""
 }
 
 // CheckHealth checks the health of the server

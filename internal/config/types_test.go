@@ -120,55 +120,40 @@ func TestConfig_GetEditor(t *testing.T) {
 	}
 }
 
-func TestClientConfig_GetDefaultEditor(t *testing.T) {
+func TestClientConfig_GetDefaultEditorName(t *testing.T) {
 	tests := []struct {
 		name   string
 		config ClientConfig
 		want   string
 	}{
 		{
-			name: "default editor by name",
+			name: "default editor set",
 			config: ClientConfig{
 				DefaultEditor: "nvim",
-				Editors: []EditorConfig{
-					{Name: "vscode", Command: "code"},
-					{Name: "nvim", Command: "nvim"},
-				},
 			},
 			want: "nvim",
 		},
 		{
-			name: "first editor when no default",
+			name: "no default editor",
 			config: ClientConfig{
-				Editors: []EditorConfig{
-					{Name: "vscode", Command: "code"},
-					{Name: "cursor", Command: "cursor"},
-				},
-			},
-			want: "vscode",
-		},
-		{
-			name: "no editors",
-			config: ClientConfig{
-				Editors: []EditorConfig{},
+				DefaultEditor: "",
 			},
 			want: "",
+		},
+		{
+			name: "cursor default",
+			config: ClientConfig{
+				DefaultEditor: "cursor",
+			},
+			want: "cursor",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			editor := tt.config.GetDefaultEditor()
-			if tt.want == "" {
-				if editor != nil {
-					t.Errorf("GetDefaultEditor() = %v, want nil", editor.Name)
-				}
-			} else {
-				if editor == nil {
-					t.Errorf("GetDefaultEditor() = nil, want %s", tt.want)
-				} else if editor.Name != tt.want {
-					t.Errorf("GetDefaultEditor() = %s, want %s", editor.Name, tt.want)
-				}
+			got := tt.config.GetDefaultEditorName()
+			if got != tt.want {
+				t.Errorf("GetDefaultEditorName() = %s, want %s", got, tt.want)
 			}
 		})
 	}
