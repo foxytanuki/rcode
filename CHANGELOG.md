@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-01-20
+
+### Changed
+- **CLI Framework Migration**: Migrated from standard library `flag` package to `spf13/cobra`
+  - Double-hyphen flags: `--config`, `--editor`, `--host`, `--verbose`, etc.
+  - Short flags: `-c`, `-e`, `-H`, `-v`, `-p`, `-l`
+  - Subcommands for better organization:
+    - `rcode config show` (replaces `--show-config`)
+    - `rcode editors` (replaces `--list-editors`)
+    - `rcode-server service install/uninstall/start/stop/status`
+  - Automatic shell completion support
+  - Legacy single-hyphen flags preserved as hidden for backward compatibility
+
+- **Editor Configuration Centralization**: Editor definitions moved to server only
+  - Client no longer needs editor command templates in config
+  - Client specifies editor name only; server provides the command
+  - Simplified client configuration (network settings + default editor name)
+  - Fallback to well-known editor commands when server is unreachable
+
+### Removed
+- `editors` section from client configuration (now server-side only)
+
 ## [0.1.1] - 2025-12-25
 
 ### Fixed
