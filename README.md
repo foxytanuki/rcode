@@ -90,14 +90,14 @@ Install rcode-server as a system service that starts automatically on login:
 
 ```bash
 # Install the service (one-time setup)
-rcode-server -install-service
+rcode-server service install
 
 # Check service status
-rcode-server -status-service
+rcode-server service status
 
 # Manually start/stop if needed
-rcode-server -start-service
-rcode-server -stop-service
+rcode-server service start
+rcode-server service stop
 ```
 
 **macOS**: The service will be installed as a launchd user agent and start automatically on login.  
@@ -113,7 +113,7 @@ rcode-server
 
 The server will start on port 3000 and display:
 ```
-INFO Starting rcode-server version=0.1.1 host=0.0.0.0 port=3000
+INFO Starting rcode-server version=0.2.0 host=0.0.0.0 port=3000
 INFO Server listening address=0.0.0.0:3000
 ```
 
@@ -159,9 +159,13 @@ rcode /home/user/project
 
 # Use a specific editor
 rcode --editor vscode /path/to/file
+rcode -e cursor .
 
-# List available editors
-rcode --list-editors
+# List available editors (from server)
+rcode editors
+
+# Show current configuration
+rcode config show
 ```
 
 ## ⚙️ Configuration
@@ -172,17 +176,17 @@ Manage rcode-server as a system service:
 
 ```bash
 # Install service (starts automatically on login)
-rcode-server -install-service
+rcode-server service install
 
 # Uninstall service
-rcode-server -uninstall-service
+rcode-server service uninstall
 
 # Start/stop service manually
-rcode-server -start-service
-rcode-server -stop-service
+rcode-server service start
+rcode-server service stop
 
 # Check service status
-rcode-server -status-service
+rcode-server service status
 ```
 
 **Service Logs**:
@@ -200,7 +204,7 @@ Key settings:
 - **IP Whitelist**: Restrict access to specific IPs/networks
 - **Logging**: Control log levels and output
 
-### Client Configuration  
+### Client Configuration
 
 Location: `~/.config/rcode/config.yaml`
 
@@ -208,9 +212,11 @@ See [examples/config.yaml](examples/config.yaml) for a complete example.
 
 Key settings:
 - **Network**: Configure primary and fallback hosts
-- **Default Editor**: Set your preferred editor
+- **Default Editor**: Set your preferred editor name (command templates are on server)
 - **SSH Host**: Override the SSH host for editor connections
 - **Retry Logic**: Configure timeout and retry behavior
+
+> **Note**: Editor command templates are configured on the server only. The client just specifies which editor to use by name.
 
 ### Environment Variables
 
@@ -307,7 +313,7 @@ telnet YOUR_HOST_IP 3000
 
 1. Check editor availability:
 ```bash
-rcode --list-editors
+rcode editors
 ```
 
 2. Verify SSH connection info:
