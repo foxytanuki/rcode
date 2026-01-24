@@ -113,7 +113,7 @@ rcode-server
 
 The server will start on port 3339 and display:
 ```
-INFO Starting rcode-server version=0.2.1 host=0.0.0.0 port=3339
+INFO Starting rcode-server version=0.2.2 host=0.0.0.0 port=3339
 INFO Server listening address=0.0.0.0:3339
 ```
 

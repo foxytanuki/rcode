@@ -3,7 +3,7 @@
 # Variables
 BINARY_NAME_SERVER=rcode-server
 BINARY_NAME_CLIENT=rcode
-VERSION?=0.1.1
+VERSION?=0.2.2
 BUILD_DIR=bin
 INSTALL_DIR=/usr/local/bin
 
