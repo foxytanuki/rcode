@@ -12,6 +12,7 @@ import (
 
 	"github.com/foxytanuki/rcode/internal/config"
 	"github.com/foxytanuki/rcode/internal/logger"
+	"github.com/foxytanuki/rcode/internal/version"
 	"github.com/foxytanuki/rcode/pkg/api"
 )
 
@@ -116,7 +117,7 @@ func (c *Client) sendRequest(host string, req api.OpenRequest) error {
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("User-Agent", fmt.Sprintf("rcode/%s", Version))
+	httpReq.Header.Set("User-Agent", fmt.Sprintf("rcode/%s", version.Version))
 
 	// Perform retries if configured
 	var lastErr error
@@ -236,7 +237,7 @@ func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", fmt.Sprintf("rcode/%s", Version))
+	req.Header.Set("User-Agent", fmt.Sprintf("rcode/%s", version.Version))
 
 	// Send request
 	resp, err := c.httpClient.Do(req)
@@ -372,7 +373,7 @@ func (c *Client) checkHostHealth(host string) (bool, error) {
 		return false, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", fmt.Sprintf("rcode/%s", Version))
+	req.Header.Set("User-Agent", fmt.Sprintf("rcode/%s", version.Version))
 
 	// Send request
 	resp, err := c.httpClient.Do(req)

@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-01-24
+
+### Changed
+- **Version Management Centralization**: Consolidated version information to single source of truth
+  - Created `internal/version` package with `Version`, `BuildTime`, `GitHash` variables
+  - Version now automatically derived from `git describe --tags` at build time
+  - Removed hardcoded version strings from `cmd/rcode/main.go` and `cmd/server/main.go`
+  - Updated Makefile to inject version info via `-ldflags`
+  - Updated GitHub Actions release workflow for new version injection
+
+### Added
+- Build metadata in version output: timestamp and git commit hash
+  - `--version` now shows: version, build time, and git hash
+  - Example: `rcode version v0.2.3 / Built: 2026-01-24T12:00:00Z / Git: abc1234`
+
+### Removed
+- `VERSION?=` variable from Makefile (now uses git tags)
+- Duplicate `Version` and `BuildTime` variables from main packages
+
 ## [0.2.1] - 2026-01-20
 
 ### Changed

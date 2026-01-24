@@ -7,14 +7,8 @@ import (
 
 	"github.com/foxytanuki/rcode/internal/config"
 	"github.com/foxytanuki/rcode/internal/logger"
+	"github.com/foxytanuki/rcode/internal/version"
 	"github.com/spf13/cobra"
-)
-
-var (
-	// Version is set at build time
-	Version = "0.2.2"
-	// BuildTime is set at build time
-	BuildTime = "unknown"
 )
 
 // Command-line flags
@@ -42,7 +36,7 @@ from SSH-connected remote machines without requiring SSH server on the host.
 
 By default, it opens the current directory or the specified path in the configured editor.`,
 	Args:    cobra.MaximumNArgs(1),
-	Version: Version,
+	Version: version.Version,
 	RunE:    runOpen,
 }
 
@@ -88,7 +82,7 @@ func init() {
 	configCmd.AddCommand(configShowCmd)
 
 	// Custom version template
-	rootCmd.SetVersionTemplate(fmt.Sprintf("rcode version %s (built %s)\n", Version, BuildTime))
+	rootCmd.SetVersionTemplate(fmt.Sprintf("rcode version %s\nBuilt: %s\nGit: %s\n", version.Version, version.BuildTime, version.GitHash))
 }
 
 //nolint:gocyclo // Main function handles multiple command-line flags

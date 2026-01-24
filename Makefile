@@ -3,9 +3,13 @@
 # Variables
 BINARY_NAME_SERVER=rcode-server
 BINARY_NAME_CLIENT=rcode
-VERSION?=0.2.2
 BUILD_DIR=bin
 INSTALL_DIR=/usr/local/bin
+
+# Version info from git
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILDTIME := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
+GITHASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Go parameters
 # Check if mise is available, otherwise use go directly
@@ -25,7 +29,11 @@ GOFMT=$(GOCMD) fmt
 GOVET=$(GOCMD) vet
 
 # Build flags
-LDFLAGS=-ldflags "-s -w -X main.Version=$(VERSION)"
+VERSION_PKG=github.com/foxytanuki/rcode/internal/version
+LDFLAGS=-ldflags "-s -w \
+	-X $(VERSION_PKG).Version=$(VERSION) \
+	-X $(VERSION_PKG).BuildTime=$(BUILDTIME) \
+	-X $(VERSION_PKG).GitHash=$(GITHASH)"
 
 # Default target
 all: test build

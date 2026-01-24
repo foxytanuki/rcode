@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/foxytanuki/rcode/internal/version"
 	"github.com/foxytanuki/rcode/pkg/api"
 )
 
@@ -19,7 +20,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	uptime := time.Since(s.startTime).Seconds()
 	response := api.HealthResponse{
 		Status:    "healthy",
-		Version:   Version,
+		Version:   version.Version,
 		Uptime:    int64(uptime),
 		StartedAt: s.startTime,
 	}

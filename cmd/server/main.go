@@ -14,14 +14,8 @@ import (
 	"github.com/foxytanuki/rcode/internal/config"
 	"github.com/foxytanuki/rcode/internal/logger"
 	"github.com/foxytanuki/rcode/internal/service"
+	"github.com/foxytanuki/rcode/internal/version"
 	"github.com/spf13/cobra"
-)
-
-var (
-	// Version is set at build time
-	Version = "0.2.2"
-	// BuildTime is set at build time
-	BuildTime = "unknown"
 )
 
 // Command-line flags
@@ -45,7 +39,7 @@ var rootCmd = &cobra.Command{
 from remote machines and executes editor commands locally.
 
 By default, it starts the HTTP server listening on the configured host and port.`,
-	Version: Version,
+	Version: version.Version,
 	RunE:    runServer,
 }
 
@@ -120,7 +114,7 @@ func init() {
 	serviceCmd.AddCommand(serviceStatusCmd)
 
 	// Custom version template
-	rootCmd.SetVersionTemplate(fmt.Sprintf("rcode-server version %s (built %s)\n", Version, BuildTime))
+	rootCmd.SetVersionTemplate(fmt.Sprintf("rcode-server version %s\nBuilt: %s\nGit: %s\n", version.Version, version.BuildTime, version.GitHash))
 }
 
 func runServer(cmd *cobra.Command, args []string) error {
@@ -188,7 +182,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 
 	// Log startup information
 	log.Info("Starting rcode-server",
-		"version", Version,
+		"version", version.Version,
 		"host", cfg.Server.Host,
 		"port", cfg.Server.Port,
 		"editors", len(cfg.Editors),

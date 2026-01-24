@@ -10,6 +10,7 @@ import (
 
 	"github.com/foxytanuki/rcode/internal/config"
 	"github.com/foxytanuki/rcode/internal/logger"
+	"github.com/foxytanuki/rcode/internal/version"
 	"github.com/foxytanuki/rcode/pkg/api"
 )
 
@@ -54,8 +55,8 @@ func TestHandleHealth(t *testing.T) {
 					t.Errorf("Health status = %v, want healthy", resp.Status)
 				}
 
-				if resp.Version != Version {
-					t.Errorf("Version = %v, want %v", resp.Version, Version)
+				if resp.Version != version.Version {
+					t.Errorf("Version = %v, want %v", resp.Version, version.Version)
 				}
 			}
 		})
