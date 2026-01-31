@@ -150,11 +150,15 @@ func ValidateServerConfig(config *ServerConfigFile) error {
 func ValidateClientConfig(config *ClientConfig) error {
 	var errors ValidationErrors
 
-	// Validate network settings
-	if config.Network.PrimaryHost == "" {
+	// Validate network settings (check both new and legacy fields)
+	primaryHost := config.Hosts.Server.Primary
+	if primaryHost == "" {
+		primaryHost = config.Network.PrimaryHost
+	}
+	if primaryHost == "" {
 		errors = append(errors, ValidationError{
-			Field:   "network.primary_host",
-			Message: "primary host cannot be empty",
+			Field:   "hosts.server.primary (or network.primary_host)",
+			Message: "primary server host cannot be empty",
 		})
 	}
 
@@ -179,6 +183,11 @@ func ValidateClientConfig(config *ClientConfig) error {
 		})
 	}
 
+	// Validate fallback editors if configured
+	if err := validateFallbackEditors(config.FallbackEditors); err != nil {
+		errors = append(errors, err...)
+	}
+
 	// Note: DefaultEditor is not validated here because editor definitions
 	// are centralized on the server. The server will validate the editor name
 	// when processing the open-editor request.
@@ -192,6 +201,31 @@ func ValidateClientConfig(config *ClientConfig) error {
 		return errors
 	}
 	return nil
+}
+
+// validateFallbackEditors validates fallback editor configurations
+func validateFallbackEditors(editors FallbackEditorsConfig) ValidationErrors {
+	var errors ValidationErrors
+
+	for name, command := range editors {
+		if command == "" {
+			errors = append(errors, ValidationError{
+				Field:   fmt.Sprintf("fallback_editors.%s", name),
+				Message: "editor command cannot be empty",
+			})
+			continue
+		}
+
+		// Validate command template
+		if err := validateCommandTemplate(command); err != nil {
+			errors = append(errors, ValidationError{
+				Field:   fmt.Sprintf("fallback_editors.%s", name),
+				Message: err.Error(),
+			})
+		}
+	}
+
+	return errors
 }
 
 // validateLogConfig validates logging configuration

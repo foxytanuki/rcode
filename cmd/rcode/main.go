@@ -7,6 +7,7 @@ import (
 
 	"github.com/foxytanuki/rcode/internal/config"
 	"github.com/foxytanuki/rcode/internal/logger"
+	"github.com/foxytanuki/rcode/internal/network"
 	"github.com/foxytanuki/rcode/internal/version"
 	"github.com/spf13/cobra"
 )
@@ -148,9 +149,9 @@ func runOpen(cmd *cobra.Command, args []string) error {
 	// Debug: Log loaded configuration values
 	if verbose {
 		log.Debug("Loaded configuration",
-			"ssh_host", cfg.SSHHost,
-			"primary_host", cfg.Network.PrimaryHost,
-			"auto_detect_tailscale", cfg.AutoDetectTailscale,
+			"ssh_host", cfg.Hosts.SSH.Host,
+			"primary_host", cfg.Hosts.Server.Primary,
+			"auto_detect_tailscale", cfg.Hosts.SSH.AutoDetect.Tailscale,
 		)
 	}
 
@@ -184,63 +185,26 @@ func runOpen(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Determine the appropriate host to use
-	// Priority: 1. Command-line flag, 2. Config ssh_host (explicit user preference), 3. Auto-detect Tailscale, 4. SSH ClientIP (from ExtractSSHInfo), 5. Default
-	// Note: sshInfo.Host is intentionally left empty by ExtractSSHInfo() so we can determine it here
-	switch {
-	case host != "":
-		// Use the server host as the SSH host when -host flag is provided
-		// This ensures that when connecting via Tailscale (e.g., -host ws01tail),
-		// the same hostname is used for both the API request and the editor SSH connection
-		sshInfo.Host = host
-		log.Debug("Using host from command-line flag", "host", sshInfo.Host)
-	case cfg.SSHHost != "":
-		// Config ssh_host takes priority over auto-detected values
-		// This allows users to explicitly specify the hostname/IP for editor connections
-		sshInfo.Host = cfg.SSHHost
-		log.Debug("Using ssh_host from config", "host", sshInfo.Host)
-	case cfg.AutoDetectTailscale:
-		// Try to auto-detect Tailscale connection if enabled
-		log.Debug("Attempting Tailscale auto-detection", "clientIP", sshInfo.ClientIP, "pattern", cfg.TailscaleHostPattern)
-		if tailHost, isTailscale := DetectTailscaleHost(sshInfo.ClientIP, cfg.TailscaleHostPattern); isTailscale {
-			log.Info("Detected Tailscale connection", "tailHost", tailHost, "clientIP", sshInfo.ClientIP)
-			sshInfo.Host = tailHost
-			// Also update the primary host for the server connection
-			cfg.Network.PrimaryHost = tailHost
-		} else {
-			log.Debug("No Tailscale connection detected")
-			// Use ClientIP from SSH_CONNECTION if available
-			if sshInfo.ClientIP != "" {
-				sshInfo.Host = sshInfo.ClientIP
-				log.Debug("Using ClientIP from SSH_CONNECTION", "host", sshInfo.Host)
-			} else {
-				// Fallback to hostname
-				hostname, err := os.Hostname()
-				if err == nil {
-					sshInfo.Host = hostname
-					log.Debug("Using hostname as fallback", "host", sshInfo.Host)
-				} else {
-					sshInfo.Host = "localhost"
-					log.Debug("Using localhost as final fallback")
-				}
-			}
-		}
-	case sshInfo.ClientIP != "":
-		// Use ClientIP from SSH_CONNECTION (fallback when no config specified)
-		// This is the IP address where we SSHed from
-		sshInfo.Host = sshInfo.ClientIP
-		log.Debug("Using ClientIP from SSH_CONNECTION", "host", sshInfo.Host)
-	default:
-		// Final fallback
-		hostname, err := os.Hostname()
-		if err == nil {
-			sshInfo.Host = hostname
-			log.Debug("Using hostname as fallback", "host", sshInfo.Host)
-		} else {
-			sshInfo.Host = "localhost"
-			log.Debug("Using localhost as final fallback")
-		}
+	// Use the Resolver to determine hosts
+	resolver := buildResolver(cfg, host, sshInfo.ClientIP)
+	resolved := resolver.Resolve()
+
+	// Apply resolved hosts
+	sshInfo.Host = resolved.SSH
+	if resolved.Server != "" {
+		cfg.Network.PrimaryHost = resolved.Server
+		cfg.Hosts.Server.Primary = resolved.Server
 	}
+	if resolved.ServerFallback != "" {
+		cfg.Network.FallbackHost = resolved.ServerFallback
+		cfg.Hosts.Server.Fallback = resolved.ServerFallback
+	}
+
+	log.Debug("Host resolution completed",
+		"ssh_host", sshInfo.Host,
+		"source", resolved.Source,
+		"server", cfg.Network.PrimaryHost,
+	)
 
 	// Log the request details
 	log.Info("Opening editor",
@@ -313,22 +277,86 @@ func runListEditors(_ *cobra.Command, _ []string) error {
 func showConfiguration(cfg *config.ClientConfig) {
 	fmt.Println("Current Configuration:")
 	fmt.Println("======================")
-	fmt.Printf("Network:\n")
-	fmt.Printf("  Primary Host: %s\n", cfg.Network.PrimaryHost)
-	if cfg.Network.FallbackHost != "" {
-		fmt.Printf("  Fallback Host: %s\n", cfg.Network.FallbackHost)
+	fmt.Printf("Hosts:\n")
+	fmt.Printf("  Server:\n")
+	fmt.Printf("    Primary: %s\n", cfg.Hosts.Server.Primary)
+	if cfg.Hosts.Server.Fallback != "" {
+		fmt.Printf("    Fallback: %s\n", cfg.Hosts.Server.Fallback)
 	}
+	fmt.Printf("  SSH:\n")
+	if cfg.Hosts.SSH.Host != "" {
+		fmt.Printf("    Host: %s\n", cfg.Hosts.SSH.Host)
+	} else {
+		fmt.Printf("    Host: (auto-detect)\n")
+	}
+	fmt.Printf("    Auto-detect Tailscale: %v\n", cfg.Hosts.SSH.AutoDetect.Tailscale)
+	if cfg.Hosts.SSH.AutoDetect.TailscalePattern != "" {
+		fmt.Printf("    Tailscale Pattern: %s\n", cfg.Hosts.SSH.AutoDetect.TailscalePattern)
+	}
+	fmt.Printf("\nNetwork:\n")
 	fmt.Printf("  Timeout: %v\n", cfg.Network.Timeout)
 	fmt.Printf("  Retry Attempts: %d\n", cfg.Network.RetryAttempts)
-	fmt.Printf("\nSSH Host: %s\n", cfg.SSHHost)
-	fmt.Printf("Auto-detect Tailscale: %v\n", cfg.AutoDetectTailscale)
-	if cfg.TailscaleHostPattern != "" {
-		fmt.Printf("Tailscale Host Pattern: %s\n", cfg.TailscaleHostPattern)
-	}
 	fmt.Printf("\nDefault Editor: %s\n", cfg.DefaultEditor)
-	fmt.Printf("  (Editor definitions are fetched from the server. Use --list-editors to see available editors.)\n")
+	fmt.Printf("  (Editor definitions are fetched from the server. Use 'rcode editors' to see available editors.)\n")
+
+	if len(cfg.FallbackEditors) > 0 {
+		fmt.Printf("\nFallback Editors (used when server is unreachable):\n")
+		for name, cmd := range cfg.FallbackEditors {
+			fmt.Printf("  %s: %s\n", name, cmd)
+		}
+	}
 
 	fmt.Printf("\nLogging:\n")
 	fmt.Printf("  Level: %s\n", cfg.Logging.Level)
 	fmt.Printf("  File: %s\n", cfg.Logging.File)
+}
+
+// buildResolver creates a Resolver with appropriate sources based on config and flags.
+func buildResolver(cfg *config.ClientConfig, hostFlag, sshClientIP string) *network.Resolver {
+	sources := []network.HostSource{}
+
+	// 1. Command-line flag (highest priority)
+	if hostFlag != "" {
+		sources = append(sources, &network.CommandLineSource{Host: hostFlag})
+	}
+
+	// 2. Environment variables
+	sources = append(sources, &network.EnvSource{
+		ServerHostEnv: "RCODE_SERVER_HOST",
+		SSHHostEnv:    "RCODE_SSH_HOST",
+		LegacyHostEnv: "RCODE_HOST",
+	})
+
+	// 3. Configuration file
+	sources = append(sources, &network.ConfigSource{
+		ServerPrimary:  cfg.Hosts.Server.Primary,
+		ServerFallback: cfg.Hosts.Server.Fallback,
+		SSHHost:        cfg.Hosts.SSH.Host,
+	})
+
+	// 4. Config fallback (separate source for lower priority)
+	if cfg.Hosts.Server.Fallback != "" {
+		sources = append(sources, &network.ConfigFallbackSource{
+			ServerFallback: cfg.Hosts.Server.Fallback,
+		})
+	}
+
+	// 5. Tailscale auto-detection
+	if cfg.Hosts.SSH.AutoDetect.Tailscale {
+		sources = append(sources, &network.TailscaleSource{
+			Enabled:     true,
+			HostPattern: cfg.Hosts.SSH.AutoDetect.TailscalePattern,
+			ClientIP:    sshClientIP,
+		})
+	}
+
+	// 6. SSH_CONNECTION environment
+	sources = append(sources, &network.SSHConnectionSource{
+		ClientIP: sshClientIP,
+	})
+
+	// 7. Hostname fallback (lowest priority)
+	sources = append(sources, &network.HostnameSource{})
+
+	return network.NewResolver(sources...)
 }

@@ -266,7 +266,7 @@ func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
 
 // GetManualCommand generates a manual command that can be run on the host
 // It first tries to fetch the command template from the server.
-// If the server is unreachable, it falls back to well-known editor commands.
+// If the server is unreachable, it falls back to configured fallback editors.
 func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string {
 	// Use default editor if not specified
 	if editor == "" {
@@ -277,19 +277,14 @@ func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string 
 	editorCmd := c.fetchEditorCommand(editor)
 
 	if editorCmd == "" {
-		// Fall back to well-known editor commands if server is unreachable
-		switch editor {
-		case "cursor":
-			editorCmd = "cursor --remote ssh-remote+{user}@{host} {path}"
-		case "vscode", "code":
-			editorCmd = "code --remote ssh-remote+{user}@{host} {path}"
-		case "zed":
-			editorCmd = "zed ssh://{user}@{host}/{path}"
-		case "nvim", "neovim":
-			editorCmd = "nvim scp://{user}@{host}/{path}"
-		default:
-			return ""
+		// Fall back to configured fallback editors
+		if c.config.FallbackEditors != nil {
+			editorCmd = c.config.FallbackEditors[editor]
 		}
+	}
+
+	if editorCmd == "" {
+		return ""
 	}
 
 	// Replace placeholders

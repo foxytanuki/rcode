@@ -206,7 +206,7 @@ func TestValidateClientConfig(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errMsg:  "primary host cannot be empty",
+			errMsg:  "primary server host cannot be empty",
 		},
 		{
 			name: "negative timeout",

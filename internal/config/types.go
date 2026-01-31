@@ -60,10 +60,43 @@ type Config struct {
 	LastUpdate time.Time `yaml:"last_update" json:"last_update"` // Last update timestamp
 }
 
+// HostsConfig represents the new unified host configuration.
+type HostsConfig struct {
+	Server ServerHostConfig `yaml:"server" json:"server"` // Server connection settings
+	SSH    SSHHostConfig    `yaml:"ssh" json:"ssh"`       // SSH connection settings
+}
+
+// ServerHostConfig represents server connection configuration.
+type ServerHostConfig struct {
+	Primary  string `yaml:"primary" json:"primary"`   // Primary server host (e.g., LAN IP)
+	Fallback string `yaml:"fallback" json:"fallback"` // Fallback server host (e.g., Tailscale IP)
+}
+
+// SSHHostConfig represents SSH host configuration for editor connections.
+type SSHHostConfig struct {
+	Host       string           `yaml:"host,omitempty" json:"host,omitempty"` // Explicit SSH host (empty = auto-detect)
+	AutoDetect AutoDetectConfig `yaml:"auto_detect" json:"auto_detect"`       // Auto-detection settings
+}
+
+// AutoDetectConfig represents auto-detection settings.
+type AutoDetectConfig struct {
+	Tailscale        bool   `yaml:"tailscale" json:"tailscale"`                                     // Enable Tailscale auto-detection
+	TailscalePattern string `yaml:"tailscale_pattern,omitempty" json:"tailscale_pattern,omitempty"` // Pattern for Tailscale hostname
+}
+
+// FallbackEditorsConfig stores editor command templates for fallback use.
+// Used when the server is unreachable.
+type FallbackEditorsConfig map[string]string
+
 // ClientConfig represents client-specific configuration
 // Note: Editor definitions are centralized on the server. The client only stores
 // the name of the default editor to use, not the command templates.
 type ClientConfig struct {
+	// New unified host configuration
+	Hosts           HostsConfig           `yaml:"hosts,omitempty" json:"hosts,omitempty"`                       // Unified host configuration
+	FallbackEditors FallbackEditorsConfig `yaml:"fallback_editors,omitempty" json:"fallback_editors,omitempty"` // Fallback editor commands
+
+	// Legacy fields (for backward compatibility, migrated at load time)
 	Network              NetworkConfig `yaml:"network" json:"network"`                                                   // Network configuration
 	DefaultEditor        string        `yaml:"default_editor" json:"default_editor"`                                     // Default editor name (validated against server)
 	Logging              LogConfig     `yaml:"logging" json:"logging"`                                                   // Logging configuration

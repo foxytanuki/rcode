@@ -103,6 +103,13 @@ func LoadClientConfig(path string) (*ClientConfig, error) {
 	// Apply defaults for missing values
 	applyClientDefaults(&config)
 
+	// Migrate old config format to new format
+	warnings := MigrateClientConfig(&config)
+	PrintMigrationWarnings(warnings)
+
+	// Sync legacy and new fields
+	SyncLegacyFields(&config)
+
 	return &config, nil
 }
 
@@ -195,13 +202,19 @@ func MergeWithEnvironment(config *Config) {
 
 // MergeClientWithEnvironment merges environment variables into client configuration
 func MergeClientWithEnvironment(config *ClientConfig) {
-	// Network configuration
-	if primaryHost := os.Getenv("RCODE_HOST"); primaryHost != "" {
-		config.Network.PrimaryHost = primaryHost
-	}
+	// Run migration for environment variables (handles deprecation warnings)
+	warnings := MigrateClientEnvironment(config)
+	PrintMigrationWarnings(warnings)
+
+	// New environment variables (RCODE_SERVER_HOST, RCODE_SSH_HOST handled in migration)
+
+	// Fallback host
 	if fallbackHost := os.Getenv("RCODE_FALLBACK_HOST"); fallbackHost != "" {
 		config.Network.FallbackHost = fallbackHost
+		config.Hosts.Server.Fallback = fallbackHost
 	}
+
+	// Timeout
 	if timeout := os.Getenv("RCODE_TIMEOUT"); timeout != "" {
 		if d, err := time.ParseDuration(timeout); err == nil {
 			config.Network.Timeout = d
@@ -217,6 +230,9 @@ func MergeClientWithEnvironment(config *ClientConfig) {
 	if logLevel := os.Getenv("RCODE_LOG_LEVEL"); logLevel != "" {
 		config.Logging.Level = strings.ToLower(logLevel)
 	}
+
+	// Sync legacy and new fields after env merge
+	SyncLegacyFields(config)
 }
 
 // GetDefaultServerConfig returns default server configuration
@@ -273,6 +289,22 @@ func GetDefaultServerConfig() *ServerConfigFile {
 func GetDefaultClientConfig() *ClientConfig {
 	paths := GetDefaultPaths()
 	return &ClientConfig{
+		// New unified host configuration
+		Hosts: HostsConfig{
+			Server: ServerHostConfig{
+				Primary:  "192.168.1.100",
+				Fallback: "100.64.0.1",
+			},
+			SSH: SSHHostConfig{
+				Host: "", // Empty = auto-detect
+				AutoDetect: AutoDetectConfig{
+					Tailscale:        true,
+					TailscalePattern: "{hostname-}tail",
+				},
+			},
+		},
+		FallbackEditors: GetDefaultFallbackEditors(),
+		// Legacy fields (kept in sync with Hosts)
 		Network: NetworkConfig{
 			PrimaryHost:   "192.168.1.100",
 			FallbackHost:  "100.64.0.1",

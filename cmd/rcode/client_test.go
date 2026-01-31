@@ -297,6 +297,14 @@ func TestClient_GetManualCommand(t *testing.T) {
 					PrimaryHost: "127.0.0.1:19999", // Non-existent server
 					Timeout:     100 * time.Millisecond,
 				},
+				FallbackEditors: config.FallbackEditorsConfig{
+					"cursor": "cursor --remote ssh-remote+{user}@{host} {path}",
+					"vscode": "code --remote ssh-remote+{user}@{host} {path}",
+					"code":   "code --remote ssh-remote+{user}@{host} {path}",
+					"zed":    "zed ssh://{user}@{host}/{path}",
+					"nvim":   "nvim scp://{user}@{host}/{path}",
+					"neovim": "nvim scp://{user}@{host}/{path}",
+				},
 				Logging: config.LogConfig{
 					Level: "error",
 				},
