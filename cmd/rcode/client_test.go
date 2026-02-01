@@ -48,8 +48,12 @@ func TestClient_OpenEditor(t *testing.T) {
 
 	// Create client with test configuration
 	cfg := &config.ClientConfig{
-		Network: config.NetworkConfig{
-			PrimaryHost:   serverHost,
+		Hosts: config.HostsConfig{
+			Server: config.ServerHostConfig{
+				Primary: serverHost,
+			},
+		},
+		Network: config.ClientNetworkConfig{
 			Timeout:       2 * time.Second,
 			RetryAttempts: 1,
 		},
@@ -103,9 +107,13 @@ func TestClient_OpenEditor_WithFallback(t *testing.T) {
 
 	// Create client with fallback configuration
 	cfg := &config.ClientConfig{
-		Network: config.NetworkConfig{
-			PrimaryHost:   primaryServer.URL[7:],
-			FallbackHost:  fallbackServer.URL[7:],
+		Hosts: config.HostsConfig{
+			Server: config.ServerHostConfig{
+				Primary:  primaryServer.URL[7:],
+				Fallback: fallbackServer.URL[7:],
+			},
+		},
+		Network: config.ClientNetworkConfig{
 			Timeout:       2 * time.Second,
 			RetryAttempts: 1,
 		},
@@ -164,9 +172,13 @@ func TestClient_ListEditors(t *testing.T) {
 
 	// Create client
 	cfg := &config.ClientConfig{
-		Network: config.NetworkConfig{
-			PrimaryHost: server.URL[7:],
-			Timeout:     2 * time.Second,
+		Hosts: config.HostsConfig{
+			Server: config.ServerHostConfig{
+				Primary: server.URL[7:],
+			},
+		},
+		Network: config.ClientNetworkConfig{
+			Timeout: 2 * time.Second,
 		},
 		Logging: config.LogConfig{
 			Level: "error",
@@ -207,9 +219,13 @@ func TestClient_CheckHealth(t *testing.T) {
 
 	// Create client
 	cfg := &config.ClientConfig{
-		Network: config.NetworkConfig{
-			PrimaryHost: server.URL[7:],
-			Timeout:     2 * time.Second,
+		Hosts: config.HostsConfig{
+			Server: config.ServerHostConfig{
+				Primary: server.URL[7:],
+			},
+		},
+		Network: config.ClientNetworkConfig{
+			Timeout: 2 * time.Second,
 		},
 		Logging: config.LogConfig{
 			Level: "error",
@@ -293,9 +309,13 @@ func TestClient_GetManualCommand(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Use a non-existent host to ensure fallback behavior is tested
 			cfg := &config.ClientConfig{
-				Network: config.NetworkConfig{
-					PrimaryHost: "127.0.0.1:19999", // Non-existent server
-					Timeout:     100 * time.Millisecond,
+				Hosts: config.HostsConfig{
+					Server: config.ServerHostConfig{
+						Primary: "127.0.0.1:19999", // Non-existent server
+					},
+				},
+				Network: config.ClientNetworkConfig{
+					Timeout: 100 * time.Millisecond,
 				},
 				FallbackEditors: config.FallbackEditorsConfig{
 					"cursor": "cursor --remote ssh-remote+{user}@{host} {path}",
@@ -349,8 +369,12 @@ func TestClient_Retry(t *testing.T) {
 
 	// Create client with retry configuration
 	cfg := &config.ClientConfig{
-		Network: config.NetworkConfig{
-			PrimaryHost:   server.URL[7:],
+		Hosts: config.HostsConfig{
+			Server: config.ServerHostConfig{
+				Primary: server.URL[7:],
+			},
+		},
+		Network: config.ClientNetworkConfig{
 			Timeout:       2 * time.Second,
 			RetryAttempts: maxAttempts,
 			RetryDelay:    10 * time.Millisecond,

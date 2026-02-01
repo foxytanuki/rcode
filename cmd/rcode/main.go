@@ -104,7 +104,7 @@ func runOpen(cmd *cobra.Command, args []string) error {
 
 	// Apply command-line overrides
 	if host != "" {
-		cfg.Network.PrimaryHost = host
+		cfg.Hosts.Server.Primary = host
 	}
 	if editor != "" {
 		cfg.DefaultEditor = editor
@@ -192,18 +192,16 @@ func runOpen(cmd *cobra.Command, args []string) error {
 	// Apply resolved hosts
 	sshInfo.Host = resolved.SSH
 	if resolved.Server != "" {
-		cfg.Network.PrimaryHost = resolved.Server
 		cfg.Hosts.Server.Primary = resolved.Server
 	}
 	if resolved.ServerFallback != "" {
-		cfg.Network.FallbackHost = resolved.ServerFallback
 		cfg.Hosts.Server.Fallback = resolved.ServerFallback
 	}
 
 	log.Debug("Host resolution completed",
 		"ssh_host", sshInfo.Host,
 		"source", resolved.Source,
-		"server", cfg.Network.PrimaryHost,
+		"server", cfg.Hosts.Server.Primary,
 	)
 
 	// Log the request details
@@ -212,7 +210,7 @@ func runOpen(cmd *cobra.Command, args []string) error {
 		"editor", cfg.DefaultEditor,
 		"user", sshInfo.User,
 		"host", sshInfo.Host,
-		"server", cfg.Network.PrimaryHost,
+		"server", cfg.Hosts.Server.Primary,
 	)
 
 	// Open the editor

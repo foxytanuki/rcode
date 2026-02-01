@@ -95,20 +95,26 @@ func LoadClientConfig(path string) (*ClientConfig, error) {
 		return nil, err
 	}
 
+	// First, parse legacy fields from the raw data
+	var legacy legacyClientConfig
+	_ = yaml.Unmarshal(data, &legacy) // Ignore errors, just capture what we can
+
+	// Parse into new config structure
 	var config ClientConfig
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	// Apply defaults for missing values
-	applyClientDefaults(&config)
+	// Migrate legacy fields to new format
+	legacyWarnings := MigrateFromLegacy(&legacy, &config)
+	PrintMigrationWarnings(legacyWarnings)
 
-	// Migrate old config format to new format
+	// Run additional migrations
 	warnings := MigrateClientConfig(&config)
 	PrintMigrationWarnings(warnings)
 
-	// Sync legacy and new fields
-	SyncLegacyFields(&config)
+	// Apply defaults for missing values
+	applyClientDefaults(&config)
 
 	return &config, nil
 }
@@ -206,11 +212,8 @@ func MergeClientWithEnvironment(config *ClientConfig) {
 	warnings := MigrateClientEnvironment(config)
 	PrintMigrationWarnings(warnings)
 
-	// New environment variables (RCODE_SERVER_HOST, RCODE_SSH_HOST handled in migration)
-
 	// Fallback host
 	if fallbackHost := os.Getenv("RCODE_FALLBACK_HOST"); fallbackHost != "" {
-		config.Network.FallbackHost = fallbackHost
 		config.Hosts.Server.Fallback = fallbackHost
 	}
 
@@ -230,9 +233,6 @@ func MergeClientWithEnvironment(config *ClientConfig) {
 	if logLevel := os.Getenv("RCODE_LOG_LEVEL"); logLevel != "" {
 		config.Logging.Level = strings.ToLower(logLevel)
 	}
-
-	// Sync legacy and new fields after env merge
-	SyncLegacyFields(config)
 }
 
 // GetDefaultServerConfig returns default server configuration
@@ -289,7 +289,6 @@ func GetDefaultServerConfig() *ServerConfigFile {
 func GetDefaultClientConfig() *ClientConfig {
 	paths := GetDefaultPaths()
 	return &ClientConfig{
-		// New unified host configuration
 		Hosts: HostsConfig{
 			Server: ServerHostConfig{
 				Primary:  "192.168.1.100",
@@ -303,18 +302,13 @@ func GetDefaultClientConfig() *ClientConfig {
 				},
 			},
 		},
-		FallbackEditors: GetDefaultFallbackEditors(),
-		// Legacy fields (kept in sync with Hosts)
-		Network: NetworkConfig{
-			PrimaryHost:   "192.168.1.100",
-			FallbackHost:  "100.64.0.1",
+		Network: ClientNetworkConfig{
 			Timeout:       DefaultTimeout,
 			RetryAttempts: DefaultRetryAttempts,
 			RetryDelay:    DefaultRetryDelay,
 		},
-		DefaultEditor:        "cursor",
-		AutoDetectTailscale:  true,
-		TailscaleHostPattern: "{hostname-}tail",
+		FallbackEditors: GetDefaultFallbackEditors(),
+		DefaultEditor:   "cursor",
 		Logging: LogConfig{
 			Level:      DefaultLogLevel,
 			File:       filepath.Join(paths.LogDir, "client.log"),

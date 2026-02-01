@@ -150,18 +150,15 @@ func ValidateServerConfig(config *ServerConfigFile) error {
 func ValidateClientConfig(config *ClientConfig) error {
 	var errors ValidationErrors
 
-	// Validate network settings (check both new and legacy fields)
-	primaryHost := config.Hosts.Server.Primary
-	if primaryHost == "" {
-		primaryHost = config.Network.PrimaryHost
-	}
-	if primaryHost == "" {
+	// Validate host settings
+	if config.Hosts.Server.Primary == "" {
 		errors = append(errors, ValidationError{
-			Field:   "hosts.server.primary (or network.primary_host)",
+			Field:   "hosts.server.primary",
 			Message: "primary server host cannot be empty",
 		})
 	}
 
+	// Validate network settings
 	if config.Network.Timeout < 0 {
 		errors = append(errors, ValidationError{
 			Field:   "network.timeout",

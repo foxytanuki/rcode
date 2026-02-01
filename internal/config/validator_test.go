@@ -168,9 +168,13 @@ func TestValidateClientConfig(t *testing.T) {
 		{
 			name: "valid config",
 			config: ClientConfig{
-				Network: NetworkConfig{
-					PrimaryHost:   "192.168.1.100",
-					FallbackHost:  "100.64.0.1",
+				Hosts: HostsConfig{
+					Server: ServerHostConfig{
+						Primary:  "192.168.1.100",
+						Fallback: "100.64.0.1",
+					},
+				},
+				Network: ClientNetworkConfig{
 					Timeout:       2 * time.Second,
 					RetryAttempts: 3,
 					RetryDelay:    500 * time.Millisecond,
@@ -185,8 +189,10 @@ func TestValidateClientConfig(t *testing.T) {
 		{
 			name: "valid config with any default editor name",
 			config: ClientConfig{
-				Network: NetworkConfig{
-					PrimaryHost: "192.168.1.100",
+				Hosts: HostsConfig{
+					Server: ServerHostConfig{
+						Primary: "192.168.1.100",
+					},
 				},
 				DefaultEditor: "sublime", // Any editor name is valid - validation happens on server
 				Logging: LogConfig{
@@ -198,8 +204,10 @@ func TestValidateClientConfig(t *testing.T) {
 		{
 			name: "missing primary host",
 			config: ClientConfig{
-				Network: NetworkConfig{
-					PrimaryHost: "",
+				Hosts: HostsConfig{
+					Server: ServerHostConfig{
+						Primary: "",
+					},
 				},
 				Logging: LogConfig{
 					Level: "info",
@@ -211,9 +219,13 @@ func TestValidateClientConfig(t *testing.T) {
 		{
 			name: "negative timeout",
 			config: ClientConfig{
-				Network: NetworkConfig{
-					PrimaryHost: "192.168.1.100",
-					Timeout:     -1 * time.Second,
+				Hosts: HostsConfig{
+					Server: ServerHostConfig{
+						Primary: "192.168.1.100",
+					},
+				},
+				Network: ClientNetworkConfig{
+					Timeout: -1 * time.Second,
 				},
 				Logging: LogConfig{
 					Level: "info",

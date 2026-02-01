@@ -3,9 +3,9 @@
 package version
 
 var (
-	// Version is the semantic version (e.g., "v0.3.0" or "v0.3.0-3-g1234567").
+	// Version is the semantic version (e.g., "v0.3.1" or "v0.3.1-3-g1234567").
 	// Set via: -X github.com/foxytanuki/rcode/internal/version.Version=$(git describe --tags --always --dirty)
-	Version = "v0.3.0"
+	Version = "v0.3.1"
 
 	// BuildTime is the UTC timestamp when the binary was built.
 	// Set via: -X github.com/foxytanuki/rcode/internal/version.BuildTime=$(date -u '+%Y-%m-%dT%H:%M:%SZ')

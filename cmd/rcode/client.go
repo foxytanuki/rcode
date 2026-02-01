@@ -55,34 +55,34 @@ func (c *Client) OpenEditor(path, editor string, sshInfo *SSHInfo) error {
 
 	// Try primary host first
 	c.log.Debug("Attempting to connect to primary host",
-		"host", c.config.Network.PrimaryHost,
+		"host", c.config.Hosts.Server.Primary,
 		"timeout", c.config.Network.Timeout,
 	)
 
-	err := c.sendRequest(c.config.Network.PrimaryHost, req)
+	err := c.sendRequest(c.config.Hosts.Server.Primary, req)
 	if err == nil {
 		return nil
 	}
 
 	c.log.Warn("Failed to connect to primary host",
-		"host", c.config.Network.PrimaryHost,
+		"host", c.config.Hosts.Server.Primary,
 		"error", err,
 	)
 
 	// Try fallback host if configured
-	if c.config.Network.FallbackHost != "" {
+	if c.config.Hosts.Server.Fallback != "" {
 		c.log.Debug("Attempting to connect to fallback host",
-			"host", c.config.Network.FallbackHost,
+			"host", c.config.Hosts.Server.Fallback,
 			"timeout", c.config.Network.Timeout,
 		)
 
-		err = c.sendRequest(c.config.Network.FallbackHost, req)
+		err = c.sendRequest(c.config.Hosts.Server.Fallback, req)
 		if err == nil {
 			return nil
 		}
 
 		c.log.Warn("Failed to connect to fallback host",
-			"host", c.config.Network.FallbackHost,
+			"host", c.config.Hosts.Server.Fallback,
 			"error", err,
 		)
 	}
@@ -189,10 +189,10 @@ func (c *Client) sendRequest(host string, req api.OpenRequest) error {
 // ListEditors lists available editors from the server
 func (c *Client) ListEditors() error {
 	// Try primary host
-	editors, err := c.fetchEditors(c.config.Network.PrimaryHost)
-	if err != nil && c.config.Network.FallbackHost != "" {
+	editors, err := c.fetchEditors(c.config.Hosts.Server.Primary)
+	if err != nil && c.config.Hosts.Server.Fallback != "" {
 		// Try fallback host
-		editors, err = c.fetchEditors(c.config.Network.FallbackHost)
+		editors, err = c.fetchEditors(c.config.Hosts.Server.Fallback)
 	}
 
 	if err != nil {
@@ -298,10 +298,10 @@ func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string 
 // fetchEditorCommand fetches the command template for a specific editor from the server
 func (c *Client) fetchEditorCommand(editorName string) string {
 	// Try primary host first
-	editors, err := c.fetchEditors(c.config.Network.PrimaryHost)
-	if err != nil && c.config.Network.FallbackHost != "" {
+	editors, err := c.fetchEditors(c.config.Hosts.Server.Primary)
+	if err != nil && c.config.Hosts.Server.Fallback != "" {
 		// Try fallback host
-		editors, err = c.fetchEditors(c.config.Network.FallbackHost)
+		editors, err = c.fetchEditors(c.config.Hosts.Server.Fallback)
 	}
 
 	if err != nil {
@@ -322,26 +322,26 @@ func (c *Client) fetchEditorCommand(editorName string) string {
 // CheckHealth checks the health of the server
 func (c *Client) CheckHealth() error {
 	// Try primary host
-	healthy, err := c.checkHostHealth(c.config.Network.PrimaryHost)
+	healthy, err := c.checkHostHealth(c.config.Hosts.Server.Primary)
 	if err == nil && healthy {
-		fmt.Printf("Primary host (%s) is healthy\n", c.config.Network.PrimaryHost)
+		fmt.Printf("Primary host (%s) is healthy\n", c.config.Hosts.Server.Primary)
 		return nil
 	}
 
 	if err != nil {
-		fmt.Printf("Primary host (%s) check failed: %v\n", c.config.Network.PrimaryHost, err)
+		fmt.Printf("Primary host (%s) check failed: %v\n", c.config.Hosts.Server.Primary, err)
 	}
 
 	// Try fallback host if configured
-	if c.config.Network.FallbackHost != "" {
-		healthy, err = c.checkHostHealth(c.config.Network.FallbackHost)
+	if c.config.Hosts.Server.Fallback != "" {
+		healthy, err = c.checkHostHealth(c.config.Hosts.Server.Fallback)
 		if err == nil && healthy {
-			fmt.Printf("Fallback host (%s) is healthy\n", c.config.Network.FallbackHost)
+			fmt.Printf("Fallback host (%s) is healthy\n", c.config.Hosts.Server.Fallback)
 			return nil
 		}
 
 		if err != nil {
-			fmt.Printf("Fallback host (%s) check failed: %v\n", c.config.Network.FallbackHost, err)
+			fmt.Printf("Fallback host (%s) check failed: %v\n", c.config.Hosts.Server.Fallback, err)
 		}
 	}
 

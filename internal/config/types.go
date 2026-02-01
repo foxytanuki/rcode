@@ -88,21 +88,22 @@ type AutoDetectConfig struct {
 // Used when the server is unreachable.
 type FallbackEditorsConfig map[string]string
 
-// ClientConfig represents client-specific configuration
+// ClientNetworkConfig represents client network settings (excluding host addresses).
+type ClientNetworkConfig struct {
+	Timeout       time.Duration `yaml:"timeout" json:"timeout"`               // Connection timeout
+	RetryAttempts int           `yaml:"retry_attempts" json:"retry_attempts"` // Number of retry attempts
+	RetryDelay    time.Duration `yaml:"retry_delay" json:"retry_delay"`       // Delay between retries
+}
+
+// ClientConfig represents client-specific configuration.
 // Note: Editor definitions are centralized on the server. The client only stores
 // the name of the default editor to use, not the command templates.
 type ClientConfig struct {
-	// New unified host configuration
-	Hosts           HostsConfig           `yaml:"hosts,omitempty" json:"hosts,omitempty"`                       // Unified host configuration
+	Hosts           HostsConfig           `yaml:"hosts" json:"hosts"`                                           // Host configuration (server + SSH)
+	Network         ClientNetworkConfig   `yaml:"network" json:"network"`                                       // Network settings (timeout, retry)
 	FallbackEditors FallbackEditorsConfig `yaml:"fallback_editors,omitempty" json:"fallback_editors,omitempty"` // Fallback editor commands
-
-	// Legacy fields (for backward compatibility, migrated at load time)
-	Network              NetworkConfig `yaml:"network" json:"network"`                                                   // Network configuration
-	DefaultEditor        string        `yaml:"default_editor" json:"default_editor"`                                     // Default editor name (validated against server)
-	Logging              LogConfig     `yaml:"logging" json:"logging"`                                                   // Logging configuration
-	SSHHost              string        `yaml:"ssh_host,omitempty" json:"ssh_host,omitempty"`                             // Override SSH host for editor connection (e.g., LAN IP when using Tailscale SSH)
-	AutoDetectTailscale  bool          `yaml:"auto_detect_tailscale,omitempty" json:"auto_detect_tailscale,omitempty"`   // Enable automatic Tailscale detection
-	TailscaleHostPattern string        `yaml:"tailscale_host_pattern,omitempty" json:"tailscale_host_pattern,omitempty"` // Pattern for Tailscale hostname (e.g., "{hostname}tail")
+	DefaultEditor   string                `yaml:"default_editor" json:"default_editor"`                         // Default editor name
+	Logging         LogConfig             `yaml:"logging" json:"logging"`                                       // Logging configuration
 }
 
 // ServerConfigFile represents server configuration file structure
