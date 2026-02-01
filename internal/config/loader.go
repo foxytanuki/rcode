@@ -82,6 +82,10 @@ func LoadServerConfig(path string) (*ServerConfigFile, error) {
 // LoadClientConfig loads client configuration from file
 func LoadClientConfig(path string) (*ClientConfig, error) {
 	defaultPath := GetDefaultPaths().ClientConfig
+	configPath := path
+	if configPath == "" {
+		configPath = defaultPath
+	}
 
 	data, err := loadConfig(path, defaultPath, func() error {
 		config := GetDefaultClientConfig()
@@ -107,16 +111,70 @@ func LoadClientConfig(path string) (*ClientConfig, error) {
 
 	// Migrate legacy fields to new format
 	legacyWarnings := MigrateFromLegacy(&legacy, &config)
-	PrintMigrationWarnings(legacyWarnings)
 
 	// Run additional migrations
 	warnings := MigrateClientConfig(&config)
-	PrintMigrationWarnings(warnings)
 
 	// Apply defaults for missing values
 	applyClientDefaults(&config)
 
+	// If legacy fields were migrated, auto-save the new format
+	if len(legacyWarnings) > 0 {
+		if err := autoMigrateConfigFile(configPath, &config, legacyWarnings); err != nil {
+			// Print warnings if auto-migration failed
+			fmt.Fprintf(os.Stderr, "Warning: Failed to auto-migrate config file: %v\n", err)
+			PrintMigrationWarnings(legacyWarnings)
+		}
+	}
+
+	// Print any additional migration warnings
+	PrintMigrationWarnings(warnings)
+
 	return &config, nil
+}
+
+// autoMigrateConfigFile backs up the old config and saves the new format
+func autoMigrateConfigFile(configPath string, config *ClientConfig, warnings []MigrationWarning) error {
+	// Create backup path
+	backupPath := configPath + ".bak"
+
+	// Check if backup already exists (don't overwrite previous backups)
+	if _, err := os.Stat(backupPath); err == nil {
+		// Backup exists, use numbered backup
+		for i := 1; i < 100; i++ {
+			backupPath = fmt.Sprintf("%s.bak.%d", configPath, i)
+			if _, err := os.Stat(backupPath); os.IsNotExist(err) {
+				break
+			}
+		}
+	}
+
+	// Read original file for backup
+	// configPath is from user configuration or default path, not external input
+	originalData, err := os.ReadFile(configPath) // #nosec G304
+	if err != nil {
+		return fmt.Errorf("failed to read original config: %w", err)
+	}
+
+	// Write backup
+	if err := os.WriteFile(backupPath, originalData, 0o600); err != nil {
+		return fmt.Errorf("failed to create backup: %w", err)
+	}
+
+	// Save new format
+	if err := SaveClientConfig(configPath, config); err != nil {
+		return fmt.Errorf("failed to save migrated config: %w", err)
+	}
+
+	// Print migration success message
+	fmt.Fprintf(os.Stderr, "Config file migrated to new format.\n")
+	fmt.Fprintf(os.Stderr, "  Backup saved to: %s\n", backupPath)
+	fmt.Fprintf(os.Stderr, "  Migrated fields:\n")
+	for _, w := range warnings {
+		fmt.Fprintf(os.Stderr, "    - %s: %s\n", w.Field, w.Message)
+	}
+
+	return nil
 }
 
 // SaveServerConfig saves server configuration to file
