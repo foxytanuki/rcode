@@ -93,18 +93,6 @@ func init() {
 	rootCmd.Flags().StringVarP(&host, "host", "H", "", "Server host to bind to")
 	rootCmd.Flags().IntVarP(&port, "port", "p", 0, "Server port")
 
-	// Legacy flag support (hidden, for backward compatibility)
-	rootCmd.Flags().Bool("install-service", false, "Install rcode-server as a system service (use 'rcode-server service install' instead)")
-	rootCmd.Flags().Bool("uninstall-service", false, "Uninstall rcode-server system service (use 'rcode-server service uninstall' instead)")
-	rootCmd.Flags().Bool("start-service", false, "Start rcode-server service (use 'rcode-server service start' instead)")
-	rootCmd.Flags().Bool("stop-service", false, "Stop rcode-server service (use 'rcode-server service stop' instead)")
-	rootCmd.Flags().Bool("status-service", false, "Check status of rcode-server service (use 'rcode-server service status' instead)")
-	_ = rootCmd.Flags().MarkHidden("install-service")
-	_ = rootCmd.Flags().MarkHidden("uninstall-service")
-	_ = rootCmd.Flags().MarkHidden("start-service")
-	_ = rootCmd.Flags().MarkHidden("stop-service")
-	_ = rootCmd.Flags().MarkHidden("status-service")
-
 	// Add subcommands
 	rootCmd.AddCommand(serviceCmd)
 	serviceCmd.AddCommand(serviceInstallCmd)
@@ -117,30 +105,7 @@ func init() {
 	rootCmd.SetVersionTemplate(fmt.Sprintf("rcode-server version %s\nBuilt: %s\nGit: %s\n", version.Version, version.BuildTime, version.GitHash))
 }
 
-func runServer(cmd *cobra.Command, args []string) error {
-	// Handle legacy flags
-	installService, _ := cmd.Flags().GetBool("install-service")
-	uninstallService, _ := cmd.Flags().GetBool("uninstall-service")
-	startService, _ := cmd.Flags().GetBool("start-service")
-	stopService, _ := cmd.Flags().GetBool("stop-service")
-	statusService, _ := cmd.Flags().GetBool("status-service")
-
-	if installService {
-		return runServiceInstall(cmd, args)
-	}
-	if uninstallService {
-		return runServiceUninstall(cmd, args)
-	}
-	if startService {
-		return runServiceStart(cmd, args)
-	}
-	if stopService {
-		return runServiceStop(cmd, args)
-	}
-	if statusService {
-		return runServiceStatus(cmd, args)
-	}
-
+func runServer(_ *cobra.Command, _ []string) error {
 	// Load configuration
 	cfg, err := config.LoadServerConfig(configFile)
 	if err != nil {

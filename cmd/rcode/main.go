@@ -14,13 +14,11 @@ import (
 
 // Command-line flags
 var (
-	configFile  string
-	editor      string
-	host        string
-	logLevel    string
-	verbose     bool
-	listEditors bool
-	showConfig  bool
+	configFile string
+	editor     string
+	host       string
+	logLevel   string
+	verbose    bool
 )
 
 func main() {
@@ -71,12 +69,6 @@ func init() {
 	rootCmd.Flags().StringVarP(&editor, "editor", "e", "", "Editor to use (overrides default)")
 	rootCmd.Flags().StringVarP(&host, "host", "H", "", "Server host (overrides config)")
 
-	// Legacy flag support (hidden, for backward compatibility)
-	rootCmd.Flags().BoolVar(&listEditors, "list-editors", false, "List available editors (use 'rcode editors' instead)")
-	rootCmd.Flags().BoolVar(&showConfig, "show-config", false, "Show current configuration (use 'rcode config show' instead)")
-	_ = rootCmd.Flags().MarkHidden("list-editors")
-	_ = rootCmd.Flags().MarkHidden("show-config")
-
 	// Add subcommands
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(editorsCmd)
@@ -86,16 +78,7 @@ func init() {
 	rootCmd.SetVersionTemplate(fmt.Sprintf("rcode version %s\nBuilt: %s\nGit: %s\n", version.Version, version.BuildTime, version.GitHash))
 }
 
-//nolint:gocyclo // Main function handles multiple command-line flags
-func runOpen(cmd *cobra.Command, args []string) error {
-	// Handle legacy flags
-	if showConfig {
-		return runConfigShow(cmd, args)
-	}
-	if listEditors {
-		return runListEditors(cmd, args)
-	}
-
+func runOpen(_ *cobra.Command, args []string) error {
 	// Load configuration
 	cfg, err := config.LoadClientConfig(configFile)
 	if err != nil {
