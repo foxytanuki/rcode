@@ -37,6 +37,31 @@ func NewClient(cfg *config.ClientConfig, log *logger.Logger) *Client {
 	}
 }
 
+// ensurePort appends the default port if the host doesn't include one.
+func ensurePort(host string) string {
+	if !strings.Contains(host, ":") {
+		return host + ":3339"
+	}
+	return host
+}
+
+// withFallback tries fn against the primary host, then the fallback host.
+func (c *Client) withFallback(fn func(host string) error) error {
+	err := fn(c.config.Hosts.Server.Primary)
+	if err == nil {
+		return nil
+	}
+	c.log.Warn("Primary host failed", "host", c.config.Hosts.Server.Primary, "error", err)
+
+	if c.config.Hosts.Server.Fallback != "" {
+		if err2 := fn(c.config.Hosts.Server.Fallback); err2 == nil {
+			return nil
+		}
+		c.log.Warn("Fallback host failed", "host", c.config.Hosts.Server.Fallback, "error", err)
+	}
+	return fmt.Errorf("failed to connect to any configured host: %w", err)
+}
+
 // OpenEditor opens a file/directory in an editor on the host machine
 func (c *Client) OpenEditor(path, editor string, sshInfo *SSHInfo) error {
 	// Use default editor if not specified
@@ -53,51 +78,14 @@ func (c *Client) OpenEditor(path, editor string, sshInfo *SSHInfo) error {
 	}
 	req.SetTimestamp()
 
-	// Try primary host first
-	c.log.Debug("Attempting to connect to primary host",
-		"host", c.config.Hosts.Server.Primary,
-		"timeout", c.config.Network.Timeout,
-	)
-
-	err := c.sendRequest(c.config.Hosts.Server.Primary, req)
-	if err == nil {
-		return nil
-	}
-
-	c.log.Warn("Failed to connect to primary host",
-		"host", c.config.Hosts.Server.Primary,
-		"error", err,
-	)
-
-	// Try fallback host if configured
-	if c.config.Hosts.Server.Fallback != "" {
-		c.log.Debug("Attempting to connect to fallback host",
-			"host", c.config.Hosts.Server.Fallback,
-			"timeout", c.config.Network.Timeout,
-		)
-
-		err = c.sendRequest(c.config.Hosts.Server.Fallback, req)
-		if err == nil {
-			return nil
-		}
-
-		c.log.Warn("Failed to connect to fallback host",
-			"host", c.config.Hosts.Server.Fallback,
-			"error", err,
-		)
-	}
-
-	return fmt.Errorf("failed to connect to any configured host")
+	return c.withFallback(func(host string) error {
+		return c.sendRequest(host, req)
+	})
 }
 
 // sendRequest sends the open editor request to a specific host
 func (c *Client) sendRequest(host string, req api.OpenRequest) error {
-	// Ensure host includes port
-	if !strings.Contains(host, ":") {
-		host = fmt.Sprintf("%s:3339", host)
-	}
-
-	// Build URL
+	host = ensurePort(host)
 	url := fmt.Sprintf("http://%s/open-editor", host)
 
 	// Marshal request to JSON
@@ -188,13 +176,13 @@ func (c *Client) sendRequest(host string, req api.OpenRequest) error {
 
 // ListEditors lists available editors from the server
 func (c *Client) ListEditors() error {
-	// Try primary host
-	editors, err := c.fetchEditors(c.config.Hosts.Server.Primary)
-	if err != nil && c.config.Hosts.Server.Fallback != "" {
-		// Try fallback host
-		editors, err = c.fetchEditors(c.config.Hosts.Server.Fallback)
-	}
+	var editors *api.EditorsResponse
 
+	err := c.withFallback(func(host string) error {
+		var fetchErr error
+		editors, fetchErr = c.fetchEditors(host)
+		return fetchErr
+	})
 	if err != nil {
 		return err
 	}
@@ -219,12 +207,7 @@ func (c *Client) ListEditors() error {
 
 // fetchEditors fetches the list of editors from a specific host
 func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
-	// Ensure host includes port
-	if !strings.Contains(host, ":") {
-		host = fmt.Sprintf("%s:3339", host)
-	}
-
-	// Build URL
+	host = ensurePort(host)
 	url := fmt.Sprintf("http://%s/editors", host)
 
 	// Create context with timeout
@@ -264,7 +247,7 @@ func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
 	return &editorsResp, nil
 }
 
-// GetManualCommand generates a manual command that can be run on the host
+// GetManualCommand generates a manual command that can be run on the host.
 // It first tries to fetch the command template from the server.
 // If the server is unreachable, it falls back to configured fallback editors.
 func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string {
@@ -297,13 +280,13 @@ func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string 
 
 // fetchEditorCommand fetches the command template for a specific editor from the server
 func (c *Client) fetchEditorCommand(editorName string) string {
-	// Try primary host first
-	editors, err := c.fetchEditors(c.config.Hosts.Server.Primary)
-	if err != nil && c.config.Hosts.Server.Fallback != "" {
-		// Try fallback host
-		editors, err = c.fetchEditors(c.config.Hosts.Server.Fallback)
-	}
+	var editors *api.EditorsResponse
 
+	err := c.withFallback(func(host string) error {
+		var fetchErr error
+		editors, fetchErr = c.fetchEditors(host)
+		return fetchErr
+	})
 	if err != nil {
 		c.log.Debug("Failed to fetch editors from server", "error", err)
 		return ""
@@ -350,12 +333,7 @@ func (c *Client) CheckHealth() error {
 
 // checkHostHealth checks the health of a specific host
 func (c *Client) checkHostHealth(host string) (bool, error) {
-	// Ensure host includes port
-	if !strings.Contains(host, ":") {
-		host = fmt.Sprintf("%s:3339", host)
-	}
-
-	// Build URL
+	host = ensurePort(host)
 	url := fmt.Sprintf("http://%s/health", host)
 
 	// Create context with timeout
