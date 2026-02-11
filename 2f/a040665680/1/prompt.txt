@@ -1,0 +1,437 @@
+Implement the following plan:
+
+# rcode リファクタリング計画 (HIGH + MEDIUM 7件)
+
+## Context
+
+直近のコミットでレガシーコード削除・パッケージ整理が進んだが、まだ重複コード・未使用コード・不完全な実装が残っている。これらを片付けて保守性を上げる。
+
+## 実施順序と内容
+
+各ステップは独立してコミット可能。依存関係に沿った順序。
+
+---
+
+### Step 1: 未使用 Executor 型の削除
+
+`internal/editor/executor.go` (325行) の `Executor` 型とその全メソッドは**プロジェクト内で一切使用されていない**。サーバーは独自の `executeCommand()` を使っている。
+
+**操作:**
+- `internal/editor/executor.go` を削除
+- `ParseCommand` は `template.go:235` に既に定義済みなのでそのまま残る
+
+**影響テスト:** `go build ./...` でコンパイル確認
+
+---
+
+### Step 2: executeCommand の重複排除
+
+`cmd/server/handlers.go:181-205` のローカル `executeCommand()` と、Step 1 で削除した executor の実装が同じロジック。
+
+**操作:**
+- `internal/editor/` に新しい `execute.go` を作成
+- `ExecuteDetached(command string, log *logger.Logger) error` を定義
+  - `ParseCommand` でパース → `exec.Command` → `Start` → `Release`
+- `cmd/server/handlers.go` から `executeCommand` を削除し、`editor.ExecuteDetached` を呼ぶ
+  - L132: `editor.ExecuteDetached(command, s.log)`
+  - import から `"os/exec"` を削除
+
+**対象ファイル:**
+- 新規: `internal/editor/execute.go` (~25行)
+- 修正: `cmd/server/handlers.go` (ローカル関数削除、呼び出し変更)
+
+---
+
+### Step 3: Logger.Close() の実装
+
+`Logger` 構造体が `FileWriter` への参照を持たないため `Close()` がno-op。ファイルハンドルがリークする。
+
+**操作:**
+- `Logger` 構造体に `closers []io.Closer` フィールド追加
+- `New()` 内で `FileWriter` 作成後に `closers` へ追加
+- `Close()` で全 closer を閉じる
+- `WithContext` / `WithFields` / `WithError` で `closers` を引き継ぐ
+
+**対象ファイル:**
+- 修正: `internal/logger/logger.go`
+
+---
+
+### Step 4: Config保存関数の共通化
+
+`SaveServerConfig` と `SaveClientConfig` (`internal/config/loader.go:180-226`) がほぼ同一。
+
+**操作:**
+- ジェネリック内部関数を追加:
+  ```go
+  func saveConfig[T any](path, defaultPath string, config *T) error
+  ```
+- 公開関数は1行のラッパーに縮小
+
+**対象ファイル:**
+- 修正: `internal/config/loader.go`
+
+---
+
+### Step 5: IP whitelist のServer構造体への移動
+
+`cmd/server/middleware.go:57-81` で毎回パースしているわけではない（クロージャで1回）が、Server構造体に持たせた方がテスタビリティ・可読性が向上する。
+
+**操作:**
+- `Server` 構造体に `allowedIPs []net.IP`, `allowedNets []*net.IPNet` を追加
+- `NewServer()` でパースしてフィールドに保存
+- `ipWhitelistMiddleware()` はフィールドを直接参照するよう簡素化
+
+**対象ファイル:**
+- 修正: `cmd/server/server.go` (構造体, NewServer)
+- 修正: `cmd/server/middleware.go` (middleware簡素化)
+
+---
+
+### Step 6: buildResolver の network パッケージへの抽出
+
+`cmd/rcode/main.go:295-343` の48行の `buildResolver()` をテスト可能な場所へ移動。
+`internal/network` は現在 `internal/config` に依存していないので、新規依存となるが一方向で問題なし。
+
+**操作:**
+- `internal/network/resolver.go` に `NewResolverFromConfig(cfg *config.ClientConfig, hostFlag, sshClientIP string) *Resolver` を追加
+- `cmd/rcode/main.go` から `buildResolver` を削除し、`network.NewResolverFromConfig` を呼ぶ
+
+**対象ファイル:**
+- 修正: `internal/network/resolver.go` (ファクトリ追加)
+- 修正: `cmd/rcode/main.go` (関数削除、呼び出し変更)
+
+---
+
+### Step 7: テンプレート検証の統一
+
+`internal/config/validator.go:286-317` と `internal/editor/template.go:72-113` に同じプレースホルダ検証が別実装で存在。editor版の方がロバスト。
+
+**循環参照の問題:** `editor` → `config` (manager.go) なので `config` → `editor` は不可。
+
+**操作:**
+- `internal/validation/template.go` を新規作成
+  - `ValidateCommandTemplate(command string) error` を定義（editor版をベースに）
+  - `ErrInvalidTemplate`, `ErrMissingPlaceholder` のエラー定数もここに移動
+- `internal/config/validator.go` の `validateCommandTemplate` を `validation.ValidateCommandTemplate` の呼び出しに置換
+- `internal/editor/template.go` の `validatePlaceholders` を `validation.ValidateCommandTemplate` の呼び出しに置換
+  - `ErrInvalidTemplate` 等のエラー変数は validation パッケージからre-exportまたはエイリアス
+
+**対象ファイル:**
+- 新規: `internal/validation/template.go` (~60行)
+- 修正: `internal/config/validator.go`
+- 修正: `internal/editor/template.go`
+
+---
+
+## 変更サマリ
+
+| ファイル | 操作 | Step |
+|---------|------|------|
+| `internal/editor/executor.go` | 削除 | 1 |
+| `internal/editor/execute.go` | 新規 | 2 |
+| `cmd/server/handlers.go` | 修正 | 2 |
+| `internal/logger/logger.go` | 修正 | 3 |
+| `internal/config/loader.go` | 修正 | 4 |
+| `cmd/server/server.go` | 修正 | 5 |
+| `cmd/server/middleware.go` | 修正 | 5 |
+| `internal/network/resolver.go` | 修正 | 6 |
+| `cmd/rcode/main.go` | 修正 | 6 |
+| `internal/validation/template.go` | 新規 | 7 |
+| `internal/config/validator.go` | 修正 | 7 |
+| `internal/editor/template.go` | 修正 | 7 |
+
+見込み: **約300行削除、200行追加 = 純減100行**
+
+## 検証
+
+各Step後:
+```bash
+go build ./...
+go test ./...
+```
+
+全Step完了後:
+```bash
+go vet ./...
+go build ./cmd/server && go build ./cmd/rcode
+```
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /home/foxy/.REDACTED.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+[Request interrupted by user]
+
+---
+
+Base directory for this skill: /home/foxy/.claude/skills/light
+
+# Light Mode — Plan → Implement → Selective Review
+
+Lightweight pipeline that skips PRD creation. Parses plan mode output (or direct instructions), breaks into tasks, dispatches parallel subagents, and only reviews what needs reviewing.
+
+**Core principle: minimum overhead, maximum parallelism.**
+
+---
+
+## Step 0: Input Detection
+
+Determine the source of work:
+
+1. **Plan mode output** (default): Check conversation context for a recently approved plan. Parse it.
+2. **Direct argument** (`/light add auth middleware and rate limiter`): Use the argument as task description. Do your own quick task breakdown.
+3. **Resume** (`/light resume`): Read existing `tasks/light/state.json` and continue from where we left off.
+4. **No input, no plan, no state**: Error — tell user to either use plan mode first or provide a description.
+
+---
+
+## Step 1: Task Breakdown
+
+Parse the plan/instruction into a flat task list. This is NOT a PRD — keep it minimal.
+
+### From Plan Mode Output
+
+Plans typically have numbered steps, phases, or bullet points. Convert each actionable step into a task:
+
+```
+Plan step: "1. Add Zod schemas for user input validation in src/schemas/"
+→ Task: { id: "T1", title: "Add Zod schemas for user input", files: ["src/schemas/"], category: "schema" }
+```
+
+### From Direct Instructions
+
+If no plan exists, analyze the instruction yourself:
+1. Identify distinct implementation units
+2. Infer dependencies from natural layer order
+3. Each task must be completable in one focused pass
+
+### Dependency Rules
+
+Infer `dependsOn` automatically:
+- Schema/type tasks → no deps
+- Backend logic → depends on schema tasks it uses
+- Frontend → depends on backend it consumes
+- Tests → depends on the code they test
+- Config/infra → usually no deps
+
+### Review Necessity (Auto-Decide)
+
+For each task, set `needsReview` based on category:
+
+| `needsReview: true` | `needsReview: false` |
+|---|---|
+| DB schema / migration changes | UI component additions |
+| Auth / security / permissions | Styling / layout changes |
+| Structural changes (3+ files, new patterns) | Config / env changes |
+| API contract changes (breaking) | Test additions |
+| Final task (always — full integration check) | Extending existing patterns |
+
+If unsure, default to `false`. Over-reviewing defeats the purpose.
+
+### State File
+
+Write to `tasks/light/state.json`:
+
+```json
+{
+  "source": "plan-mode|direct|resume",
+  "branch": "light/<feature-kebab>",
+  "runner": "codex-implementer",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Add Zod schemas for user input",
+      "description": "Create validation schemas in src/schemas/ for...",
+      "dependsOn": [],
+      "needsReview": false,
+      "status": "pending",
+      "notes": ""
+    }
+  ]
+}
+```
+
+**Minimal fields only.** No priority (order = priority), no acceptance criteria, no model overrides.
+
+---
+
+## Step 2: Setup
+
+### Runner Detection
+
+Same as neoralph — check for codex-implementer availability:
+1. `~/.claude/agents/codex-implementer.md` exists
+2. `~/.claude/.mcp.json` has `codex` server entry
+3. Both true → `"codex-implementer"`, else `"general-purpose"`
+
+### Branch & Worktree
+
+1. Derive branch name: `light/<feature-name-kebab>`
+2. Create worktree at `.worktree/light/<feature-name-kebab>/` from base branch
+3. Switch to worktree
+4. Write `tasks/light/state.json` inside the worktree
+
+If the plan involves only 1-2 simple tasks, skip worktree — work directly on a new branch.
+
+---
+
+## Step 3: Execute
+
+### Task Selection
+
+A task is **ready** when:
+- `status == "pending"`
+- All tasks in `dependsOn` have `status == "done"`
+
+### Dispatch Strategy
+
+```
+ready_tasks = find all ready tasks
+
+if len(ready_tasks) == 0 and incomplete tasks remain:
+  → deadlock, stop and report
+
+if len(ready_tasks) == 1:
+  → dispatch single worker on main branch (no sub-worktree)
+
+if len(ready_tasks) >= 2:
+  → dispatch workers in parallel with worktree isolation
+```
+
+### Parallel Worktree Isolation
+
+Same pattern as neoralph:
+```bash
+# For each parallel task
+worker_branch="light/<feature>/workers/<task-id>"
+worker_dir=".worktree/light/<feature>/workers/<task-id>"
+mkdir -p "$(dirname "$worker_dir")"
+git worktree add -b "$worker_branch" "$worker_dir" "light/<feature>"
+```
+
+After parallel workers complete:
+1. Merge sub-branches back in task order
+2. Cleanup worktrees and branches
+
+### Worker Prompt
+
+Spawn via Task tool:
+
+```
+subagent_type: <resolved runner>
+model: opus (or inherit)
+prompt:
+  You are implementing one task in a lightweight pipeline.
+
+  Branch: <branch>
+  Working directory: <absolute path>
+
+  Task: <id> - <title>
+  Description: <description>
+
+  Instructions:
+  1. Read existing code to understand patterns
+  2. Implement the task (focused, minimal changes)
+  3. Run quality checks (typecheck/lint/test as applicable)
+  4. If checks pass, commit: "feat(<scope>): <title>"
+  5. If checks fail, fix before committing
+```
+
+For `codex-implementer` workers, the prompt additionally instructs to use `mcp__codex__codex` with `sandbox: "workspace-write"`.
+
+### Post-Worker Verification
+
+After each worker returns:
+1. `git status --short` — check for uncommitted work
+2. If uncommitted files from the worker: stage and commit
+3. If worker already committed: verify with `git log -1 --oneline`
+4. Update `state.json`: set `status: "done"`, add notes
+
+### Error Handling
+
+- Worker fails → retry once with error context, then mark `status: "failed"` and continue
+- Merge conflict → attempt auto-resolve, if not possible mark failed
+- Max 2 retries per task (lighter than neoralph's 3)
+
+---
+
+## Step 4: Selective Review
+
+Only runs if ANY completed task has `needsReview: true`.
+
+**If no tasks need review → skip entirely and go to Step 5.**
+
+### Review Scope
+
+Don't review everything — only the diff from tasks with `needsReview: true`:
+```bash
+# Get commits for review-worthy tasks only
+git log --oneline main..<current-branch> -- <files from needsReview tasks>
+```
+
+### Review Execution
+
+Spawn `codex-reviewer` subagent (same as neoralph):
+```
+subagent_type: codex-reviewer
+model: sonnet
+prompt:
+  Review the following changes. Focus on: correctness, security, breaking changes.
+  Do NOT review: style, naming, minor improvements.
+
+  Scope: [list of review-worthy tasks and their files]
+  Branch diff: git diff main..HEAD
+```
+
+### After Review
+
+- Critical/High issues → spawn a fix worker, then continue
+- Medium/Low → note in summary, don't block
+- **No second review round.** Fix once and move on.
+
+---
+
+## Step 5: Completion
+
+1. Verify final state: all tasks `done` or `failed`
+2. Run final quality check (typecheck + test if applicable)
+3. Print summary:
+   ```
+   Light Mode Complete
+   ──────────────────
+   Tasks: X/Y completed (Z failed)
+   Review: [skipped | passed | N issues fixed]
+   Branch: light/<feature>
+   Commits: <count>
+   ```
+4. Clean up `tasks/light/state.json` (delete it — git log is the real record)
+5. Do NOT push or create PR unless asked
+
+---
+
+## Autonomy Rules
+
+Same as neoralph — do NOT ask the user unless:
+- Missing credentials or API keys
+- Ambiguous requirements
+- Destructive operations
+
+For everything else, decide and act. This is light mode — speed is the point.
+
+---
+
+## Comparison with NeoRalph
+
+| Aspect | NeoRalph | Light Mode |
+|---|---|---|
+| Input | PRD (markdown) → prd.json | Plan mode output or direct text |
+| State | prd.json (rich schema) | state.json (minimal) |
+| Review | Every phase boundary | Only risky tasks + final |
+| Progress | progress.txt (detailed) | git log (commits are the record) |
+| Worktree | Always for feature branch | Skip for simple tasks |
+| Recovery | Resume from prd.json | Resume from state.json |
+| Overhead | High (PRD + convert + preflight) | Low (parse + go) |
