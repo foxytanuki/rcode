@@ -79,6 +79,12 @@ dist/
 /rcode-server-linux
 /bin/rcode*
 
+# Claude Code
+.claude/
+
+# Git worktrees
+.worktree/
+
 # Backup files
 *.backup
 *.bak
