@@ -225,45 +225,6 @@ func SaveClientConfig(path string, config *ClientConfig) error {
 	return nil
 }
 
-// MergeWithEnvironment merges environment variables into configuration
-func MergeWithEnvironment(config *Config) {
-	// Server configuration
-	if host := os.Getenv("RCODE_HOST"); host != "" {
-		config.Server.Host = host
-	}
-	if port := os.Getenv("RCODE_PORT"); port != "" {
-		if p, err := parseInt(port); err == nil {
-			config.Server.Port = p
-		}
-	}
-
-	// Network configuration
-	if primaryHost := os.Getenv("RCODE_PRIMARY_HOST"); primaryHost != "" {
-		config.Network.PrimaryHost = primaryHost
-	}
-	if fallbackHost := os.Getenv("RCODE_FALLBACK_HOST"); fallbackHost != "" {
-		config.Network.FallbackHost = fallbackHost
-	}
-	if timeout := os.Getenv("RCODE_TIMEOUT"); timeout != "" {
-		if d, err := time.ParseDuration(timeout); err == nil {
-			config.Network.Timeout = d
-		}
-	}
-
-	// Editor configuration
-	if editor := os.Getenv("RCODE_EDITOR"); editor != "" {
-		config.DefaultEditor = editor
-	}
-
-	// Logging configuration
-	if logLevel := os.Getenv("RCODE_LOG_LEVEL"); logLevel != "" {
-		config.Logging.Level = strings.ToLower(logLevel)
-	}
-	if logFile := os.Getenv("RCODE_LOG_FILE"); logFile != "" {
-		config.Logging.File = logFile
-	}
-}
-
 // MergeClientWithEnvironment merges environment variables into client configuration
 func MergeClientWithEnvironment(config *ClientConfig) {
 	// Run migration for environment variables (handles deprecation warnings)
@@ -433,11 +394,4 @@ func applyLogDefaults(config *LogConfig, defaultFile string) {
 	if config.MaxAge == 0 {
 		config.MaxAge = DefaultLogMaxAge
 	}
-}
-
-// parseInt is a helper to parse integer from string
-func parseInt(s string) (int, error) {
-	var i int
-	_, err := fmt.Sscanf(s, "%d", &i)
-	return i, err
 }

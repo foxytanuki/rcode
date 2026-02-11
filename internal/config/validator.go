@@ -340,38 +340,3 @@ func checkDirectoryWritable(dir string) error {
 
 	return nil
 }
-
-// ValidateConfig validates a complete configuration
-func ValidateConfig(config *Config) error {
-	var errors ValidationErrors
-
-	// Validate editors
-	if len(config.Editors) == 0 {
-		errors = append(errors, ValidationError{
-			Field:   "editors",
-			Message: "at least one editor must be configured",
-		})
-	}
-
-	// Validate that default editor exists if specified
-	if config.DefaultEditor != "" {
-		found := false
-		for _, editor := range config.Editors {
-			if editor.Name == config.DefaultEditor {
-				found = true
-				break
-			}
-		}
-		if !found {
-			errors = append(errors, ValidationError{
-				Field:   "default_editor",
-				Message: fmt.Sprintf("default editor '%s' not found", config.DefaultEditor),
-			})
-		}
-	}
-
-	if len(errors) > 0 {
-		return errors
-	}
-	return nil
-}

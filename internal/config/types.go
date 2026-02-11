@@ -12,15 +12,6 @@ type EditorConfig struct {
 	Available bool   `yaml:"available" json:"available"` // Whether the editor is available on the system
 }
 
-// NetworkConfig represents network configuration
-type NetworkConfig struct {
-	PrimaryHost   string        `yaml:"primary_host" json:"primary_host"`     // Primary host (e.g., LAN IP)
-	FallbackHost  string        `yaml:"fallback_host" json:"fallback_host"`   // Fallback host (e.g., Tailscale IP)
-	Timeout       time.Duration `yaml:"timeout" json:"timeout"`               // Connection timeout
-	RetryAttempts int           `yaml:"retry_attempts" json:"retry_attempts"` // Number of retry attempts
-	RetryDelay    time.Duration `yaml:"retry_delay" json:"retry_delay"`       // Delay between retries
-}
-
 // ServerConfig represents server-specific configuration
 type ServerConfig struct {
 	Host         string        `yaml:"host" json:"host"`                   // Server host to bind to
@@ -40,24 +31,6 @@ type LogConfig struct {
 	MaxAge     int    `yaml:"max_age" json:"max_age"`         // Max age in days
 	Compress   bool   `yaml:"compress" json:"compress"`       // Whether to compress old logs
 	Console    bool   `yaml:"console" json:"console"`         // Whether to also log to console
-}
-
-// Config represents the complete configuration
-type Config struct {
-	// Common configuration
-	Editors []EditorConfig `yaml:"editors" json:"editors"` // Available editors
-	Logging LogConfig      `yaml:"logging" json:"logging"` // Logging configuration
-
-	// Client-specific configuration
-	Network       NetworkConfig `yaml:"network" json:"network"`               // Network configuration
-	DefaultEditor string        `yaml:"default_editor" json:"default_editor"` // Default editor name
-
-	// Server-specific configuration
-	Server ServerConfig `yaml:"server" json:"server"` // Server configuration
-
-	// Metadata
-	Version    string    `yaml:"version" json:"version"`         // Config version
-	LastUpdate time.Time `yaml:"last_update" json:"last_update"` // Last update timestamp
 }
 
 // HostsConfig represents the new unified host configuration.
@@ -128,49 +101,6 @@ const (
 	DefaultWriteTimeout  = 10 * time.Second
 	DefaultIdleTimeout   = 120 * time.Second
 )
-
-// GetDefaultEditor returns the default editor from the list
-func (c *Config) GetDefaultEditor() *EditorConfig {
-	// First check if there's an explicitly marked default
-	for i := range c.Editors {
-		if c.Editors[i].Default {
-			return &c.Editors[i]
-		}
-	}
-
-	// Then check if DefaultEditor is set
-	if c.DefaultEditor != "" {
-		for i := range c.Editors {
-			if c.Editors[i].Name == c.DefaultEditor {
-				return &c.Editors[i]
-			}
-		}
-	}
-
-	// Return first available editor
-	for i := range c.Editors {
-		if c.Editors[i].Available {
-			return &c.Editors[i]
-		}
-	}
-
-	// Return first editor if any exist
-	if len(c.Editors) > 0 {
-		return &c.Editors[0]
-	}
-
-	return nil
-}
-
-// GetEditor returns an editor by name
-func (c *Config) GetEditor(name string) *EditorConfig {
-	for i := range c.Editors {
-		if c.Editors[i].Name == name {
-			return &c.Editors[i]
-		}
-	}
-	return nil
-}
 
 // GetDefaultEditorName returns the default editor name for client config
 // Note: The client no longer stores editor command templates locally.
