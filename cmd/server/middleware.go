@@ -57,31 +57,11 @@ func (s *Server) recoveryMiddleware(next http.Handler) http.Handler {
 // ipWhitelistMiddleware restricts access based on IP whitelist
 func (s *Server) ipWhitelistMiddleware(next http.Handler) http.Handler {
 	// If no whitelist configured, allow all
-	if len(s.config.Server.AllowedIPs) == 0 {
+	if len(s.allowedIPs) == 0 && len(s.allowedNets) == 0 {
 		return next
 	}
 
-	// Parse allowed IPs and CIDRs
-	var allowedNets []*net.IPNet
-	var allowedIPs []net.IP
-
-	for _, allowed := range s.config.Server.AllowedIPs {
-		if strings.Contains(allowed, "/") {
-			// CIDR notation
-			_, ipNet, err := net.ParseCIDR(allowed)
-			if err == nil {
-				allowedNets = append(allowedNets, ipNet)
-			}
-		} else {
-			// Single IP
-			if ip := net.ParseIP(allowed); ip != nil {
-				allowedIPs = append(allowedIPs, ip)
-			}
-		}
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Extract client IP
 		clientIP := getClientIP(r)
 		ip := net.ParseIP(clientIP)
 
@@ -94,20 +74,15 @@ func (s *Server) ipWhitelistMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Check if IP is allowed
 		allowed := false
-
-		// Check single IPs
-		for _, allowedIP := range allowedIPs {
+		for _, allowedIP := range s.allowedIPs {
 			if ip.Equal(allowedIP) {
 				allowed = true
 				break
 			}
 		}
-
-		// Check CIDR ranges
 		if !allowed {
-			for _, ipNet := range allowedNets {
+			for _, ipNet := range s.allowedNets {
 				if ipNet.Contains(ip) {
 					allowed = true
 					break

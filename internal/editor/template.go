@@ -4,13 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/foxytanuki/rcode/internal/validation"
 )
 
 var (
-	// ErrInvalidTemplate is returned when a template is invalid
-	ErrInvalidTemplate = errors.New("invalid template")
-	// ErrMissingPlaceholder is returned when a required placeholder is missing
-	ErrMissingPlaceholder = errors.New("missing required placeholder")
+	// ErrInvalidTemplate is an alias for validation.ErrInvalidTemplate
+	ErrInvalidTemplate = validation.ErrInvalidTemplate
+	// ErrMissingPlaceholder is an alias for validation.ErrMissingPlaceholder
+	ErrMissingPlaceholder = validation.ErrMissingPlaceholder
 )
 
 // Template represents a command template with placeholders
@@ -31,8 +33,9 @@ type TemplateVars struct {
 
 // NewTemplate creates a new template from a command string
 func NewTemplate(command string) (*Template, error) {
-	if command == "" {
-		return nil, fmt.Errorf("%w: command cannot be empty", ErrInvalidTemplate)
+	// ValidateCommandTemplate checks empty, {path} required, and placeholder validity
+	if err := validation.ValidateCommandTemplate(command); err != nil {
+		return nil, err
 	}
 
 	t := &Template{
@@ -40,20 +43,10 @@ func NewTemplate(command string) (*Template, error) {
 		placeholders: make([]string, 0),
 	}
 
-	// Validate for unknown and unclosed placeholders first
-	if err := t.validatePlaceholders(); err != nil {
-		return nil, err
-	}
-
 	// Check for placeholders
 	t.hasUser = strings.Contains(command, "{user}")
 	t.hasHost = strings.Contains(command, "{host}")
 	t.hasPath = strings.Contains(command, "{path}")
-
-	// Path is required
-	if !t.hasPath {
-		return nil, fmt.Errorf("%w: {path}", ErrMissingPlaceholder)
-	}
 
 	// Collect all placeholders
 	if t.hasUser {
@@ -67,49 +60,6 @@ func NewTemplate(command string) (*Template, error) {
 	}
 
 	return t, nil
-}
-
-// validatePlaceholders checks for unknown placeholders
-func (t *Template) validatePlaceholders() error {
-	// Valid placeholders
-	valid := map[string]bool{
-		"{user}": true,
-		"{host}": true,
-		"{path}": true,
-	}
-
-	// Check for invalid placeholders
-	cmd := t.raw
-	start := 0
-	for {
-		idx := strings.Index(cmd[start:], "{")
-		if idx == -1 {
-			break
-		}
-		idx += start
-
-		// Look for the matching closing brace
-		end := strings.Index(cmd[idx+1:], "}")
-		if end == -1 {
-			return fmt.Errorf("%w: unclosed placeholder at position %d", ErrInvalidTemplate, idx)
-		}
-		end += idx + 1 + 1 // Adjust for the slice starting at idx+1
-
-		// Check if there's a nested brace (which would be invalid)
-		innerBrace := strings.Index(cmd[idx+1:end], "{")
-		if innerBrace != -1 {
-			return fmt.Errorf("%w: unclosed placeholder at position %d", ErrInvalidTemplate, idx)
-		}
-
-		placeholder := cmd[idx:end]
-		if !valid[placeholder] {
-			return fmt.Errorf("%w: unknown placeholder %s", ErrInvalidTemplate, placeholder)
-		}
-
-		start = end
-	}
-
-	return nil
 }
 
 // Render applies the template variables to generate the final command

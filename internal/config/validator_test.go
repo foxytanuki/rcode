@@ -282,7 +282,7 @@ func TestValidateCommandTemplate(t *testing.T) {
 			name:    "invalid placeholder",
 			command: "cursor {invalid} {path}",
 			wantErr: true,
-			errMsg:  "invalid placeholder: {invalid}",
+			errMsg:  "unknown placeholder {invalid}",
 		},
 		{
 			name:    "valid with multiple occurrences",

@@ -177,13 +177,12 @@ func autoMigrateConfigFile(configPath string, config *ClientConfig, warnings []M
 	return nil
 }
 
-// SaveServerConfig saves server configuration to file
-func SaveServerConfig(path string, config *ServerConfigFile) error {
+// saveConfig is a generic function to save configuration to file
+func saveConfig[T any](path, defaultPath string, config *T) error {
 	if path == "" {
-		path = GetDefaultPaths().ServerConfig
+		path = defaultPath
 	}
 
-	// Create directory if it doesn't exist
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
@@ -201,28 +200,14 @@ func SaveServerConfig(path string, config *ServerConfigFile) error {
 	return nil
 }
 
+// SaveServerConfig saves server configuration to file
+func SaveServerConfig(path string, config *ServerConfigFile) error {
+	return saveConfig(path, GetDefaultPaths().ServerConfig, config)
+}
+
 // SaveClientConfig saves client configuration to file
 func SaveClientConfig(path string, config *ClientConfig) error {
-	if path == "" {
-		path = GetDefaultPaths().ClientConfig
-	}
-
-	// Create directory if it doesn't exist
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o750); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	data, err := yaml.Marshal(config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	if err := os.WriteFile(path, data, 0o600); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
-	return nil
+	return saveConfig(path, GetDefaultPaths().ClientConfig, config)
 }
 
 // MergeClientWithEnvironment merges environment variables into client configuration

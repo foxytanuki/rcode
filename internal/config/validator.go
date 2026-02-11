@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/foxytanuki/rcode/internal/validation"
 )
 
 // ValidationError represents a configuration validation error
@@ -285,35 +287,7 @@ func validateLogConfig(config *LogConfig) ValidationErrors {
 
 // validateCommandTemplate validates an editor command template
 func validateCommandTemplate(command string) error {
-	// Check for required placeholders
-	requiredPlaceholders := []string{"{path}"}
-	for _, placeholder := range requiredPlaceholders {
-		if !strings.Contains(command, placeholder) {
-			return fmt.Errorf("missing required placeholder: %s", placeholder)
-		}
-	}
-
-	// Check for invalid placeholders
-	validPlaceholders := map[string]bool{
-		"{user}": true,
-		"{host}": true,
-		"{path}": true,
-	}
-
-	// Simple check for placeholder-like patterns
-	for i := 0; i < len(command); i++ {
-		if command[i] == '{' {
-			end := strings.Index(command[i:], "}")
-			if end > 0 {
-				placeholder := command[i : i+end+1]
-				if !validPlaceholders[placeholder] {
-					return fmt.Errorf("invalid placeholder: %s", placeholder)
-				}
-			}
-		}
-	}
-
-	return nil
+	return validation.ValidateCommandTemplate(command)
 }
 
 // checkDirectoryWritable checks if a directory is writable

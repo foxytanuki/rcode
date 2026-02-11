@@ -2,6 +2,8 @@
 // including host resolution with fallback logic.
 package network
 
+import "github.com/foxytanuki/rcode/internal/config"
+
 // HostType represents the type of host being resolved.
 type HostType int
 
@@ -118,4 +120,54 @@ func (r *Resolver) ResolveServer() (primary, fallback string) {
 		}
 	}
 	return primary, fallback
+}
+
+// NewResolverFromConfig creates a Resolver with appropriate sources based on config and flags.
+func NewResolverFromConfig(cfg *config.ClientConfig, hostFlag, sshClientIP string) *Resolver {
+	sources := []HostSource{}
+
+	// 1. Command-line flag (highest priority)
+	if hostFlag != "" {
+		sources = append(sources, &CommandLineSource{Host: hostFlag})
+	}
+
+	// 2. Environment variables
+	sources = append(sources, &EnvSource{
+		ServerHostEnv: "RCODE_SERVER_HOST",
+		SSHHostEnv:    "RCODE_SSH_HOST",
+		LegacyHostEnv: "RCODE_HOST",
+	})
+
+	// 3. Configuration file
+	sources = append(sources, &ConfigSource{
+		ServerPrimary:  cfg.Hosts.Server.Primary,
+		ServerFallback: cfg.Hosts.Server.Fallback,
+		SSHHost:        cfg.Hosts.SSH.Host,
+	})
+
+	// 4. Config fallback (separate source for lower priority)
+	if cfg.Hosts.Server.Fallback != "" {
+		sources = append(sources, &ConfigFallbackSource{
+			ServerFallback: cfg.Hosts.Server.Fallback,
+		})
+	}
+
+	// 5. Tailscale auto-detection
+	if cfg.Hosts.SSH.AutoDetect.Tailscale {
+		sources = append(sources, &TailscaleSource{
+			Enabled:     true,
+			HostPattern: cfg.Hosts.SSH.AutoDetect.TailscalePattern,
+			ClientIP:    sshClientIP,
+		})
+	}
+
+	// 6. SSH_CONNECTION environment
+	sources = append(sources, &SSHConnectionSource{
+		ClientIP: sshClientIP,
+	})
+
+	// 7. Hostname fallback (lowest priority)
+	sources = append(sources, &HostnameSource{})
+
+	return NewResolver(sources...)
 }

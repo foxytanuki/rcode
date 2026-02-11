@@ -13,8 +13,9 @@ import (
 // Logger wraps slog.Logger with additional functionality
 type Logger struct {
 	*slog.Logger
-	config *Config
-	mu     sync.RWMutex
+	config  *Config
+	mu      sync.RWMutex
+	closers []io.Closer
 }
 
 // Config holds logger configuration
@@ -58,6 +59,7 @@ func New(config *Config) *Logger {
 
 	level := parseLevel(config.Level)
 	handlers := []slog.Handler{}
+	var closers []io.Closer
 
 	// Console handler
 	if config.Console {
@@ -83,6 +85,7 @@ func New(config *Config) *Logger {
 			Compress:   config.Compress,
 		})
 		if err == nil {
+			closers = append(closers, fileWriter)
 			var fileHandler slog.Handler
 			if config.Format == "json" {
 				fileHandler = slog.NewJSONHandler(fileWriter, &slog.HandlerOptions{
@@ -112,8 +115,9 @@ func New(config *Config) *Logger {
 	}
 
 	return &Logger{
-		Logger: slog.New(handler),
-		config: config,
+		Logger:  slog.New(handler),
+		config:  config,
+		closers: closers,
 	}
 }
 
@@ -136,8 +140,9 @@ func parseLevel(level string) slog.Level {
 // WithContext returns a logger with context
 func (l *Logger) WithContext(ctx context.Context) *Logger {
 	return &Logger{
-		Logger: l.With("trace_id", GetTraceID(ctx)),
-		config: l.config,
+		Logger:  l.With("trace_id", GetTraceID(ctx)),
+		config:  l.config,
+		closers: l.closers,
 	}
 }
 
@@ -148,16 +153,18 @@ func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
 		args = append(args, k, v)
 	}
 	return &Logger{
-		Logger: l.With(args...),
-		config: l.config,
+		Logger:  l.With(args...),
+		config:  l.config,
+		closers: l.closers,
 	}
 }
 
 // WithError returns a logger with an error field
 func (l *Logger) WithError(err error) *Logger {
 	return &Logger{
-		Logger: l.With("error", err.Error()),
-		config: l.config,
+		Logger:  l.With("error", err.Error()),
+		config:  l.config,
+		closers: l.closers,
 	}
 }
 
@@ -269,8 +276,13 @@ func (h *MultiHandler) WithGroup(name string) slog.Handler {
 
 // Close closes all file handlers
 func (l *Logger) Close() error {
-	// This would be implemented if we have closeable resources
-	return nil
+	var firstErr error
+	for _, c := range l.closers {
+		if err := c.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }
 
 // Sync flushes any buffered log entries

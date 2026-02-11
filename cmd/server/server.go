@@ -1,7 +1,9 @@
 package main
 
 import (
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/foxytanuki/rcode/internal/config"
@@ -11,10 +13,12 @@ import (
 
 // Server represents the HTTP server
 type Server struct {
-	config    *config.ServerConfigFile
-	log       *logger.Logger
-	editor    *editor.Manager
-	startTime time.Time
+	config      *config.ServerConfigFile
+	log         *logger.Logger
+	editor      *editor.Manager
+	startTime   time.Time
+	allowedIPs  []net.IP
+	allowedNets []*net.IPNet
 }
 
 // NewServer creates a new server instance
@@ -24,11 +28,28 @@ func NewServer(cfg *config.ServerConfigFile, log *logger.Logger) (*Server, error
 		return nil, err
 	}
 
+	// Parse IP whitelist once at startup
+	var allowedIPs []net.IP
+	var allowedNets []*net.IPNet
+	for _, allowed := range cfg.Server.AllowedIPs {
+		if strings.Contains(allowed, "/") {
+			if _, ipNet, err := net.ParseCIDR(allowed); err == nil {
+				allowedNets = append(allowedNets, ipNet)
+			}
+		} else {
+			if ip := net.ParseIP(allowed); ip != nil {
+				allowedIPs = append(allowedIPs, ip)
+			}
+		}
+	}
+
 	return &Server{
-		config:    cfg,
-		log:       log,
-		editor:    mgr,
-		startTime: time.Now(),
+		config:      cfg,
+		log:         log,
+		editor:      mgr,
+		startTime:   time.Now(),
+		allowedIPs:  allowedIPs,
+		allowedNets: allowedNets,
 	}, nil
 }
 

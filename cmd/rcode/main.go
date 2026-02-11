@@ -169,7 +169,7 @@ func runOpen(_ *cobra.Command, args []string) error {
 	}
 
 	// Use the Resolver to determine hosts
-	resolver := buildResolver(cfg, host, sshInfo.ClientIP)
+	resolver := network.NewResolverFromConfig(cfg, host, sshInfo.ClientIP)
 	resolved := resolver.Resolve()
 
 	// Apply resolved hosts
@@ -290,54 +290,4 @@ func showConfiguration(cfg *config.ClientConfig) {
 	fmt.Printf("\nLogging:\n")
 	fmt.Printf("  Level: %s\n", cfg.Logging.Level)
 	fmt.Printf("  File: %s\n", cfg.Logging.File)
-}
-
-// buildResolver creates a Resolver with appropriate sources based on config and flags.
-func buildResolver(cfg *config.ClientConfig, hostFlag, sshClientIP string) *network.Resolver {
-	sources := []network.HostSource{}
-
-	// 1. Command-line flag (highest priority)
-	if hostFlag != "" {
-		sources = append(sources, &network.CommandLineSource{Host: hostFlag})
-	}
-
-	// 2. Environment variables
-	sources = append(sources, &network.EnvSource{
-		ServerHostEnv: "RCODE_SERVER_HOST",
-		SSHHostEnv:    "RCODE_SSH_HOST",
-		LegacyHostEnv: "RCODE_HOST",
-	})
-
-	// 3. Configuration file
-	sources = append(sources, &network.ConfigSource{
-		ServerPrimary:  cfg.Hosts.Server.Primary,
-		ServerFallback: cfg.Hosts.Server.Fallback,
-		SSHHost:        cfg.Hosts.SSH.Host,
-	})
-
-	// 4. Config fallback (separate source for lower priority)
-	if cfg.Hosts.Server.Fallback != "" {
-		sources = append(sources, &network.ConfigFallbackSource{
-			ServerFallback: cfg.Hosts.Server.Fallback,
-		})
-	}
-
-	// 5. Tailscale auto-detection
-	if cfg.Hosts.SSH.AutoDetect.Tailscale {
-		sources = append(sources, &network.TailscaleSource{
-			Enabled:     true,
-			HostPattern: cfg.Hosts.SSH.AutoDetect.TailscalePattern,
-			ClientIP:    sshClientIP,
-		})
-	}
-
-	// 6. SSH_CONNECTION environment
-	sources = append(sources, &network.SSHConnectionSource{
-		ClientIP: sshClientIP,
-	})
-
-	// 7. Hostname fallback (lowest priority)
-	sources = append(sources, &network.HostnameSource{})
-
-	return network.NewResolver(sources...)
 }

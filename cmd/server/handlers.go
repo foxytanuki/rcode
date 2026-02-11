@@ -6,12 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/foxytanuki/rcode/internal/editor"
-	"github.com/foxytanuki/rcode/internal/logger"
 	"github.com/foxytanuki/rcode/internal/version"
 	"github.com/foxytanuki/rcode/pkg/api"
 )
@@ -129,7 +126,7 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Execute the command
-	if err := executeCommand(command, s.log); err != nil {
+	if err := editor.ExecuteDetached(command, s.log); err != nil {
 		s.log.Error("Failed to execute editor command",
 			"error", err,
 			"editor", e.Name,
@@ -176,30 +173,4 @@ func (s *Server) respondError(w http.ResponseWriter, err error, status int, deta
 	if encodeErr := json.NewEncoder(w).Encode(response); encodeErr != nil {
 		s.log.Error("Failed to encode error response", "error", encodeErr)
 	}
-}
-
-// executeCommand executes an editor command string, detaching the process for GUI editors.
-func executeCommand(command string, log *logger.Logger) error {
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
-		return fmt.Errorf("empty command")
-	}
-
-	executable := parts[0]
-	args := parts[1:]
-
-	cmd := exec.Command(executable, args...) // #nosec G204
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	cmd.Stdin = nil
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start command: %w", err)
-	}
-
-	if err := cmd.Process.Release(); err != nil {
-		log.Warn("Failed to release process", "error", err)
-	}
-
-	return nil
 }
