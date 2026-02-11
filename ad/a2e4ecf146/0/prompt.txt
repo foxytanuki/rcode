@@ -1,0 +1,191 @@
+Implement the following plan:
+
+# Refactor Plan: rcode コードベース整理
+
+## Context
+
+rcode は v0.2.x 台の初期開発フェーズ。機能追加に伴い以下の技術的負債が蓄積:
+- `internal/editor/` パッケージを作ったが、サーバーが使っていない（独自の executor.go を持つ）
+- Tailscale検出ロジックが2箇所に重複
+- レガシー Config 型が新型と共存
+- client.go 内のfallbackパターンが4回コピペ
+
+このrefactorで重複を排除し、internal パッケージを正しく活用する状態にする。
+
+---
+
+## Step 1: サーバーExecutorを `internal/editor` に統合 (高優先度)
+
+最大の構造的問題。`cmd/server/executor.go` (296行) が `internal/editor/` (956行) と完全に機能重複。
+
+### 変更対象
+- **削除:** `cmd/server/executor.go`
+- **修正:** `cmd/server/server.go` — Server struct のフィールド変更
+- **修正:** `cmd/server/handlers.go` — editor.Manager / editor.Executor 経由の呼び出しに変更
+- **修正:** `cmd/server/main.go` — NewServer の引数調整（不要なら）
+- **修正:** `cmd/server/executor_test.go` — internal/editor のテストに統合 or 削除
+
+### 具体的な対応
+1. `Server` struct を変更:
+   ```go
+   type Server struct {
+       config    *config.ServerConfigFile
+       log       *logger.Logger
+       editor    *editor.Manager   // 旧: executor *Executor
+       startTime time.Time
+   }
+   ```
+2. `NewServer` で `editor.NewManager(cfg.Editors, log)` を呼ぶ
+3. `handlers.go` の `handleOpenEditor` で `editor.Manager.GetEditor()` → `Template.Render()` → `editor.Executor.Execute()` に切り替え
+4. `handleEditors` で `editor.Manager.ListEditors()` と `editor.Manager.IsAvailable()` を使う
+5. `cmd/server/executor.go` の `init()` (PATH設定) は `cmd/server/main.go` に移動
+6. `cmd/server/executor_test.go` は `internal/editor/` のテストでカバーされている部分を削除、不足があれば `internal/editor/` 側にテスト追加
+
+---
+
+## Step 2: Tailscale ロジックの重複排除 (高優先度)
+
+`cmd/rcode/tailscale.go` と `internal/network/sources.go` で同じ関数が存在。
+
+### 重複関数
+| cmd/rcode/tailscale.go | internal/network/sources.go |
+|---|---|
+| `isTailscaleIP()` | `isTailscaleIP()` |
+| `getTailscaleHostname()` | `getTailscaleHostname()` |
+| `GetTailscaleInterface()` | `getTailscaleInterfaceIP()` |
+| `DetectTailscaleHost()` | `TailscaleSource.Resolve()` |
+| `TailscaleStatus` struct | `tailscaleStatus` struct |
+
+### 変更対象
+- **削除:** `cmd/rcode/tailscale.go`
+- **修正:** `internal/network/sources.go` — 必要な関数を export (`IsTailscaleIP`, `GetTailscaleInterfaceIP`)
+- **修正:** `cmd/rcode/main.go` — `buildResolver()` は既に `network.TailscaleSource` を使っているので影響なし
+
+### 確認事項
+- `cmd/rcode/tailscale.go` の関数が `cmd/rcode/` 内の他ファイルから呼ばれていないことを確認（`buildResolver` は `network.TailscaleSource` を使っている）
+
+---
+
+## Step 3: レガシー `Config` 型の削除 (中優先度)
+
+### 変更対象
+- **修正:** `internal/config/types.go` — `Config` struct, `NetworkConfig` struct, `GetDefaultEditor()`, `GetEditor()` メソッドを削除
+- **修正:** `internal/config/loader.go` — `MergeWithEnvironment(config *Config)` を削除
+- **確認:** これらの型/関数を使っている箇所がないことを grep で確認
+
+---
+
+## Step 4: `cmd/rcode/ssh.go` の未使用関数削除 (中優先度)
+
+### 削除対象関数
+- `GetSSHUser()` — `ExtractSSHInfo()` で代替済み
+- `GetSSHHost()` — Resolver 経由に移行済み
+- `FormatSSHCommand()` — 未使用
+- `ParseSSHDestination()` — 未使用
+- `GetRemoteInfo()` — 未使用
+- `IsSSHSession()` — 未使用
+
+### 残す関数
+- `ExtractSSHInfo()` — main.go から使用
+- `SSHInfo` struct — main.go, client.go から使用
+- `SSHInfo.String()`, `SSHInfo.IsValid()` — 型メソッド
+
+### 変更対象
+- **修正:** `cmd/rcode/ssh.go` — 上記関数を削除
+- **修正:** `cmd/rcode/ssh_test.go` — 対応テストを削除
+
+---
+
+## Step 5: Client の fallback パターン共通化 (低優先度)
+
+### 変更対象
+- **修正:** `cmd/rcode/client.go`
+
+### 具体的な対応
+`withFallback` ヘルパーを追加:
+```go
+func (c *Client) withFallback(fn func(host string) error) error {
+    err := fn(c.config.Hosts.Server.Primary)
+    if err == nil {
+        return nil
+    }
+    c.log.Warn("Primary host failed", "host", c.config.Hosts.Server.Primary, "error", err)
+    if c.config.Hosts.Server.Fallback != "" {
+        if err2 := fn(c.config.Hosts.Server.Fallback); err2 == nil {
+            return nil
+        }
+    }
+    return fmt.Errorf("all hosts failed: %w", err)
+}
+```
+
+`OpenEditor`, `ListEditors`, `fetchEditorCommand`, `CheckHealth` を書き換え。
+
+ポート付与の共通化 (`ensurePort`) もここで一緒にやる。
+
+---
+
+## Step 6: レガシーフラグ削除 (低優先度・任意)
+
+v0.2.x 台なのでまだ消せる。hidden flag を削除して、`runServer` / `runOpen` のレガシーflag分岐を消す。
+
+### 変更対象
+- **修正:** `cmd/rcode/main.go` — `--list-editors`, `--show-config` 削除
+- **修正:** `cmd/server/main.go` — `--install-service` 等5つの hidden flag 削除
+
+---
+
+## 実行順序
+
+```
+Step 1 (server executor統合)
+  ↓
+Step 2 (tailscale重複排除)
+  ↓
+Step 3 (legacy Config削除)
+  ↓
+Step 4 (ssh.go整理)
+  ↓
+Step 5 (client fallback共通化)
+  ↓
+Step 6 (legacy flags削除) ← 任意
+```
+
+Step 1→2 は依存なし。並行可能だが、Step 1 が一番大きいので先にやる。
+
+---
+
+## Commit Policy
+
+各Stepごとに1 commit。コミットメッセージ例:
+- Step 1: `refactor: Replace server executor with internal/editor package`
+- Step 2: `refactor: Remove duplicated Tailscale logic in cmd/rcode`
+- Step 3: `refactor: Remove legacy Config type`
+- Step 4: `refactor: Remove unused SSH helper functions`
+- Step 5: `refactor: Extract withFallback pattern in client`
+- Step 6: `refactor: Remove legacy hidden flags`
+
+---
+
+## Verification
+
+各Step完了後:
+```bash
+go build ./...          # コンパイル通ること
+go test ./...           # 全テスト通ること
+go vet ./...            # vet 通ること
+```
+
+Step 1 完了後は特に:
+- `cmd/server/` のテストが全部通ること
+- `internal/editor/` のテストが全部通ること
+- サーバー起動 → `/health`, `/editors`, `/open-editor` の動作確認
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /home/foxy/.claude/projects/-home-foxy-dev-personal-rcode/5681596b-fd95-4dfe-9dc5-195b1668a68d.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+push it

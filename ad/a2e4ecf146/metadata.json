@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "ada2e4ecf146",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "cmd/rcode/client.go",
+    "cmd/rcode/main.go",
+    "cmd/rcode/ssh.go",
+    "cmd/rcode/ssh_test.go",
+    "cmd/server/handlers.go",
+    "cmd/server/handlers_test.go",
+    "cmd/server/main.go",
+    "cmd/server/server.go",
+    "internal/config/loader.go",
+    "internal/config/types.go",
+    "internal/config/types_test.go",
+    "internal/config/validator.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ad/a2e4ecf146/0/metadata.json",
+      "transcript": "/ad/a2e4ecf146/0/full.jsonl",
+      "context": "/ad/a2e4ecf146/0/context.md",
+      "content_hash": "/ad/a2e4ecf146/0/content_hash.txt",
+      "prompt": "/ad/a2e4ecf146/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 93,
+    "cache_creation_tokens": 274953,
+    "cache_read_tokens": 9930668,
+    "output_tokens": 17847,
+    "api_call_count": 89
+  }
+}
