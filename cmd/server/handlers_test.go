@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -265,5 +266,9 @@ func createTestServer() *Server {
 		Console: false,
 	})
 
-	return NewServer(cfg, log)
+	srv, err := NewServer(cfg, log)
+	if err != nil {
+		panic(fmt.Sprintf("createTestServer: %v", err))
+	}
+	return srv
 }

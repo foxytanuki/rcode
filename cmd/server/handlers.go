@@ -1,11 +1,17 @@
+// Package main implements the rcode server application.
 package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"os/exec"
+	"strings"
 	"time"
 
+	"github.com/foxytanuki/rcode/internal/editor"
+	"github.com/foxytanuki/rcode/internal/logger"
 	"github.com/foxytanuki/rcode/internal/version"
 	"github.com/foxytanuki/rcode/pkg/api"
 )
@@ -36,26 +42,22 @@ func (s *Server) handleEditors(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	editors := make([]api.EditorInfo, 0, len(s.config.Editors))
-	defaultEditor := ""
+	editorList := s.editor.ListEditors()
+	editors := make([]api.EditorInfo, 0, len(editorList))
 
-	for _, editor := range s.config.Editors {
+	for _, e := range editorList {
 		info := api.EditorInfo{
-			Name:      editor.Name,
-			Command:   editor.Command,
-			Available: s.executor.IsEditorAvailable(editor.Name),
-			Default:   editor.Default,
+			Name:      e.Name,
+			Command:   e.Command,
+			Available: e.Available,
+			Default:   e.Default,
 		}
 		editors = append(editors, info)
-
-		if editor.Default {
-			defaultEditor = editor.Name
-		}
 	}
 
 	response := api.EditorsResponse{
 		Editors:       editors,
-		DefaultEditor: defaultEditor,
+		DefaultEditor: s.editor.GetDefaultName(),
 	}
 	response.SetTimestamp()
 
@@ -91,18 +93,16 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 		"remote_addr", r.RemoteAddr,
 	)
 
-	// Execute editor command
-	command, err := s.executor.OpenEditor(req.Editor, req.User, req.Host, req.Path)
+	// Look up editor via Manager
+	e, err := s.editor.GetEditor(req.Editor)
 	if err != nil {
-		s.log.Error("Failed to open editor",
+		s.log.Error("Failed to find editor",
 			"error", err,
 			"editor", req.Editor,
-			"path", req.Path,
 		)
 
-		// Determine appropriate error code
 		statusCode := http.StatusInternalServerError
-		if err == ErrEditorNotFound {
+		if errors.Is(err, editor.ErrEditorNotFound) || errors.Is(err, editor.ErrNoDefaultEditor) {
 			statusCode = http.StatusNotFound
 		}
 
@@ -110,11 +110,45 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Build template variables and render command
+	vars := editor.TemplateVars{
+		User: req.User,
+		Host: req.Host,
+		Path: req.Path,
+	}
+
+	command, err := e.Template.Render(vars)
+	if err != nil {
+		s.log.Error("Failed to render editor command",
+			"error", err,
+			"editor", e.Name,
+			"path", req.Path,
+		)
+		s.respondError(w, err, http.StatusInternalServerError, "")
+		return
+	}
+
+	// Execute the command
+	if err := executeCommand(command, s.log); err != nil {
+		s.log.Error("Failed to execute editor command",
+			"error", err,
+			"editor", e.Name,
+			"command", command,
+		)
+		s.respondError(w, err, http.StatusInternalServerError, "")
+		return
+	}
+
+	editorName := req.Editor
+	if editorName == "" {
+		editorName = e.Name
+	}
+
 	// Success response
 	response := api.OpenResponse{
 		Success: true,
-		Message: fmt.Sprintf("Opened %s in %s", req.Path, req.Editor),
-		Editor:  req.Editor,
+		Message: fmt.Sprintf("Opened %s in %s", req.Path, editorName),
+		Editor:  editorName,
 		Command: command,
 	}
 	response.SetTimestamp()
@@ -142,4 +176,30 @@ func (s *Server) respondError(w http.ResponseWriter, err error, status int, deta
 	if encodeErr := json.NewEncoder(w).Encode(response); encodeErr != nil {
 		s.log.Error("Failed to encode error response", "error", encodeErr)
 	}
+}
+
+// executeCommand executes an editor command string, detaching the process for GUI editors.
+func executeCommand(command string, log *logger.Logger) error {
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return fmt.Errorf("empty command")
+	}
+
+	executable := parts[0]
+	args := parts[1:]
+
+	cmd := exec.Command(executable, args...) // #nosec G204
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	cmd.Stdin = nil
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start command: %w", err)
+	}
+
+	if err := cmd.Process.Release(); err != nil {
+		log.Warn("Failed to release process", "error", err)
+	}
+
+	return nil
 }

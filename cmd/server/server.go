@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/foxytanuki/rcode/internal/config"
+	"github.com/foxytanuki/rcode/internal/editor"
 	"github.com/foxytanuki/rcode/internal/logger"
 )
 
@@ -12,18 +13,23 @@ import (
 type Server struct {
 	config    *config.ServerConfigFile
 	log       *logger.Logger
-	executor  *Executor
+	editor    *editor.Manager
 	startTime time.Time
 }
 
 // NewServer creates a new server instance
-func NewServer(cfg *config.ServerConfigFile, log *logger.Logger) *Server {
+func NewServer(cfg *config.ServerConfigFile, log *logger.Logger) (*Server, error) {
+	mgr, err := editor.NewManager(cfg.Editors, log)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Server{
 		config:    cfg,
 		log:       log,
-		executor:  NewExecutor(cfg.Editors, log),
+		editor:    mgr,
 		startTime: time.Now(),
-	}
+	}, nil
 }
 
 // Router returns the HTTP handler with all routes configured

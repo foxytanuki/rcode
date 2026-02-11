@@ -188,8 +188,16 @@ func runServer(cmd *cobra.Command, args []string) error {
 		"editors", len(cfg.Editors),
 	)
 
+	// Ensure PATH is set for editor binary lookups
+	if os.Getenv("PATH") == "" {
+		_ = os.Setenv("PATH", "/usr/local/bin:/usr/bin:/bin")
+	}
+
 	// Create server instance
-	srv := NewServer(cfg, log)
+	srv, err := NewServer(cfg, log)
+	if err != nil {
+		return fmt.Errorf("failed to create server: %w", err)
+	}
 
 	// Setup HTTP server
 	httpServer := &http.Server{
