@@ -3,7 +3,6 @@ package main
 import (
 	"net"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -125,26 +124,12 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
-// getClientIP extracts the client IP from the request
+// getClientIP extracts the client IP from the request.
+// Only uses RemoteAddr to prevent IP spoofing via X-Forwarded-For/X-Real-IP headers.
+// rcode-server is designed for direct access without a reverse proxy.
 func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// Take the first IP in the chain
-		if idx := strings.Index(xff, ","); idx != -1 {
-			return strings.TrimSpace(xff[:idx])
-		}
-		return strings.TrimSpace(xff)
-	}
-
-	// Check X-Real-IP header
-	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return strings.TrimSpace(xri)
-	}
-
-	// Fall back to RemoteAddr
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		return host
 	}
-
 	return r.RemoteAddr
 }

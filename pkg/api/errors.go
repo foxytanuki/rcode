@@ -53,8 +53,12 @@ func (e *ErrorResponse) Error() string {
 
 // NewErrorResponse creates a new error response
 func NewErrorResponse(err error, code, details string) *ErrorResponse {
+	msg := "unknown error"
+	if err != nil {
+		msg = err.Error()
+	}
 	return &ErrorResponse{
-		Message:   err.Error(),
+		Message:   msg,
 		Code:      code,
 		Details:   details,
 		Timestamp: timeNow().Unix(),

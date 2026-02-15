@@ -161,6 +161,9 @@ func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
 
 // WithError returns a logger with an error field
 func (l *Logger) WithError(err error) *Logger {
+	if err == nil {
+		return l
+	}
 	return &Logger{
 		Logger:  l.With("error", err.Error()),
 		config:  l.config,

@@ -1,11 +1,13 @@
 package network
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // Priority constants for host sources.
@@ -259,7 +261,9 @@ type tailscaleStatus struct {
 
 // getTailscaleHostname retrieves the hostname from Tailscale.
 func getTailscaleHostname() string {
-	cmd := exec.Command("tailscale", "status", "--json")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "tailscale", "status", "--json")
 	output, err := cmd.Output()
 	if err != nil {
 		return ""

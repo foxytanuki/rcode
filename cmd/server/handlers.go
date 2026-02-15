@@ -68,6 +68,9 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Limit request body size to prevent DoS (1MB)
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
 	// Parse request body
 	var req api.OpenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

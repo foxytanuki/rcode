@@ -90,6 +90,9 @@ dist/
 *.bak
 *.orig
 
+# Audit artifacts
+scripts/audit/
+
 # Generated documentation
 docs/_build/
 docs/_site/

@@ -136,9 +136,9 @@ func (fw *FileWriter) rotate(filename string) error {
 		fw.file = nil
 	}
 
-	// Generate backup filename with timestamp
+	// Generate backup filename with timestamp including nanoseconds to avoid collisions
 	now := time.Now()
-	backupName := fmt.Sprintf("%s.%s", filename, now.Format("20060102-150405"))
+	backupName := fmt.Sprintf("%s.%s", filename, now.Format("20060102-150405.000000000"))
 
 	// Rename current file
 	if err := os.Rename(filename, backupName); err != nil && !os.IsNotExist(err) {

@@ -54,10 +54,11 @@ func (c *Client) withFallback(fn func(host string) error) error {
 	c.log.Warn("Primary host failed", "host", c.config.Hosts.Server.Primary, "error", err)
 
 	if c.config.Hosts.Server.Fallback != "" {
-		if err2 := fn(c.config.Hosts.Server.Fallback); err2 == nil {
+		err2 := fn(c.config.Hosts.Server.Fallback)
+		if err2 == nil {
 			return nil
 		}
-		c.log.Warn("Fallback host failed", "host", c.config.Hosts.Server.Fallback, "error", err)
+		c.log.Warn("Fallback host failed", "host", c.config.Hosts.Server.Fallback, "error", err2)
 	}
 	return fmt.Errorf("failed to connect to any configured host: %w", err)
 }
@@ -94,19 +95,6 @@ func (c *Client) sendRequest(host string, req api.OpenRequest) error {
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), c.config.Network.Timeout)
-	defer cancel()
-
-	// Create HTTP request
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(jsonData))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("User-Agent", fmt.Sprintf("rcode/%s", version.Version))
-
 	// Perform retries if configured
 	var lastErr error
 	attempts := c.config.Network.RetryAttempts
@@ -123,8 +111,19 @@ func (c *Client) sendRequest(host string, req api.OpenRequest) error {
 			time.Sleep(c.config.Network.RetryDelay)
 		}
 
+		// Create fresh request for each attempt to avoid consumed body
+		ctx, cancel := context.WithTimeout(context.Background(), c.config.Network.Timeout)
+		httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(jsonData))
+		if err != nil {
+			cancel()
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("User-Agent", fmt.Sprintf("rcode/%s", version.Version))
+
 		// Send request
 		resp, err := c.httpClient.Do(httpReq)
+		cancel()
 		if err != nil {
 			lastErr = fmt.Errorf("request failed: %w", err)
 			continue
