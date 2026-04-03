@@ -14,11 +14,12 @@ import (
 
 // Command-line flags
 var (
-	configFile string
-	editor     string
-	host       string
-	logLevel   string
-	verbose    bool
+	configFile       string
+	editor           string
+	host             string
+	logLevel         string
+	verbose          bool
+	serverConfigFile string
 )
 
 func main() {
@@ -52,6 +53,13 @@ var configShowCmd = &cobra.Command{
 	RunE:  runConfigShow,
 }
 
+var configMigrateCmd = &cobra.Command{
+	Use:   "migrate",
+	Short: "Migrate split config files into unified config.yaml",
+	Long:  `Merge client config.yaml and server-config.yaml into a single unified config.yaml file.`,
+	RunE:  runConfigMigrate,
+}
+
 var editorsCmd = &cobra.Command{
 	Use:   "editors",
 	Short: "List available editors",
@@ -73,6 +81,8 @@ func init() {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(editorsCmd)
 	configCmd.AddCommand(configShowCmd)
+	configCmd.AddCommand(configMigrateCmd)
+	configMigrateCmd.Flags().StringVar(&serverConfigFile, "server-config", "", "Path to legacy server configuration file")
 
 	// Custom version template
 	rootCmd.SetVersionTemplate(fmt.Sprintf("rcode version %s\nBuilt: %s\nGit: %s\n", version.Version, version.BuildTime, version.GitHash))
@@ -251,6 +261,23 @@ func runListEditors(_ *cobra.Command, _ []string) error {
 	if err := client.ListEditors(); err != nil {
 		return fmt.Errorf("failed to list editors: %w", err)
 	}
+	return nil
+}
+
+func runConfigMigrate(_ *cobra.Command, _ []string) error {
+	result, err := config.MigrateToUnifiedConfig(configFile, serverConfigFile)
+	if err != nil {
+		return fmt.Errorf("failed to migrate configuration: %w", err)
+	}
+
+	fmt.Printf("Unified config written to %s\n", result.UnifiedPath)
+	if result.ClientBackupPath != "" {
+		fmt.Printf("Client backup saved to %s\n", result.ClientBackupPath)
+	}
+	if result.ServerBackupPath != "" {
+		fmt.Printf("Server backup saved to %s\n", result.ServerBackupPath)
+	}
+
 	return nil
 }
 

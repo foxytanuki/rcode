@@ -1,4 +1,4 @@
-.PHONY: all build build-all clean test lint lint-fix lint-report fix-permissions fix-all fmt vet install-tools help check install-hooks
+.PHONY: all build build-all clean test lint lint-fix lint-report fix-permissions fix-all fmt vet install-tools help check install-hooks require-sudo install uninstall install-service uninstall-service start-service stop-service status-service
 
 # Variables
 BINARY_NAME_SERVER=rcode-server
@@ -159,15 +159,20 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -f coverage.out coverage.html
 
+## require-sudo: Refresh sudo credentials for privileged targets
+require-sudo:
+	sudo -v
+
 ## install: Install binaries to system (requires sudo)
-install: build
+install: build require-sudo
 	@echo "Installing binaries to $(INSTALL_DIR)..."
+	sudo mkdir -p $(INSTALL_DIR)
 	sudo cp $(BUILD_DIR)/$(BINARY_NAME_SERVER) $(INSTALL_DIR)/
 	sudo cp $(BUILD_DIR)/$(BINARY_NAME_CLIENT) $(INSTALL_DIR)/
 	@echo "Installation complete"
 
 ## uninstall: Uninstall binaries from system (requires sudo)
-uninstall:
+uninstall: require-sudo
 	@echo "Removing binaries from $(INSTALL_DIR)..."
 	sudo rm -f $(INSTALL_DIR)/$(BINARY_NAME_SERVER)
 	sudo rm -f $(INSTALL_DIR)/$(BINARY_NAME_CLIENT)
@@ -220,8 +225,9 @@ run-hooks:
 	@mise exec lefthook -- lefthook run pre-commit
 
 ## install-service: Install rcode-server as a system service
-install-service: build-server
+install-service: build-server require-sudo
 	@echo "Installing rcode-server as a system service..."
+	@sudo mkdir -p $(INSTALL_DIR)
 	@sudo cp $(BUILD_DIR)/$(BINARY_NAME_SERVER) $(INSTALL_DIR)/
 	@$(INSTALL_DIR)/$(BINARY_NAME_SERVER) -install-service
 	@echo "Service installed. It will start automatically on login."

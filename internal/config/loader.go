@@ -11,6 +11,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type configDocument struct {
+	Client yaml.Node `yaml:"client"`
+	Server yaml.Node `yaml:"server"`
+}
+
 // Paths defines standard configuration file paths
 type Paths struct {
 	ServerConfig string
@@ -54,7 +59,8 @@ func loadConfig(path, defaultPath string, createDefault func() error) ([]byte, e
 
 // LoadServerConfig loads server configuration from file
 func LoadServerConfig(path string) (*ServerConfigFile, error) {
-	defaultPath := GetDefaultPaths().ServerConfig
+	paths := GetDefaultPaths()
+	defaultPath := defaultServerConfigPath(paths)
 
 	data, err := loadConfig(path, defaultPath, func() error {
 		config := GetDefaultServerConfig()
@@ -103,24 +109,23 @@ func LoadClientConfig(path string) (*ClientConfig, error) {
 	var legacy legacyClientConfig
 	_ = yaml.Unmarshal(data, &legacy) // Ignore errors, just capture what we can
 
-	// Parse into new config structure
-	var config ClientConfig
-	if err := yaml.Unmarshal(data, &config); err != nil {
+	config, err := parseClientConfig(data)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
 	// Migrate legacy fields to new format
-	legacyWarnings := MigrateFromLegacy(&legacy, &config)
+	legacyWarnings := MigrateFromLegacy(&legacy, config)
 
 	// Run additional migrations
-	warnings := MigrateClientConfig(&config)
+	warnings := MigrateClientConfig(config)
 
 	// Apply defaults for missing values
-	applyClientDefaults(&config)
+	applyClientDefaults(config)
 
 	// If legacy fields were migrated, auto-save the new format
 	if len(legacyWarnings) > 0 {
-		if err := autoMigrateConfigFile(configPath, &config, legacyWarnings); err != nil {
+		if err := autoMigrateConfigFile(configPath, config, legacyWarnings); err != nil {
 			// Print warnings if auto-migration failed
 			fmt.Fprintf(os.Stderr, "Warning: Failed to auto-migrate config file: %v\n", err)
 			PrintMigrationWarnings(legacyWarnings)
@@ -130,7 +135,56 @@ func LoadClientConfig(path string) (*ClientConfig, error) {
 	// Print any additional migration warnings
 	PrintMigrationWarnings(warnings)
 
+	return config, nil
+}
+
+func parseClientConfig(data []byte) (*ClientConfig, error) {
+	if !hasNestedClientConfig(data) {
+		var config ClientConfig
+		if err := yaml.Unmarshal(data, &config); err != nil {
+			return nil, err
+		}
+
+		return &config, nil
+	}
+
+	var unified UnifiedConfigFile
+	if err := yaml.Unmarshal(data, &unified); err != nil {
+		return nil, err
+	}
+
+	config := unified.Client
+	if config.Logging == (LogConfig{}) {
+		config.Logging = unified.Logging
+	}
+
 	return &config, nil
+}
+
+func hasNestedClientConfig(data []byte) bool {
+	var doc configDocument
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return false
+	}
+
+	return !doc.Client.IsZero()
+}
+
+func hasNestedServerConfig(data []byte) bool {
+	var doc configDocument
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return false
+	}
+
+	return !doc.Server.IsZero()
+}
+
+func defaultServerConfigPath(paths Paths) string {
+	if data, err := os.ReadFile(paths.ClientConfig); err == nil && hasNestedServerConfig(data) {
+		return paths.ClientConfig
+	}
+
+	return paths.ServerConfig
 }
 
 // autoMigrateConfigFile backs up the old config and saves the new format
@@ -207,6 +261,11 @@ func SaveServerConfig(path string, config *ServerConfigFile) error {
 
 // SaveClientConfig saves client configuration to file
 func SaveClientConfig(path string, config *ClientConfig) error {
+	return saveConfig(path, GetDefaultPaths().ClientConfig, config)
+}
+
+// SaveUnifiedConfig saves unified client/server configuration to file.
+func SaveUnifiedConfig(path string, config *UnifiedConfigFile) error {
 	return saveConfig(path, GetDefaultPaths().ClientConfig, config)
 }
 

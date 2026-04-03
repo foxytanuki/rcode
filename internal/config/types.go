@@ -86,6 +86,14 @@ type ServerConfigFile struct {
 	Logging LogConfig      `yaml:"logging" json:"logging"` // Logging configuration
 }
 
+// UnifiedConfigFile represents the combined client/server configuration file structure.
+type UnifiedConfigFile struct {
+	Client  ClientConfig   `yaml:"client" json:"client"`
+	Server  ServerConfig   `yaml:"server" json:"server"`
+	Editors []EditorConfig `yaml:"editors" json:"editors"`
+	Logging LogConfig      `yaml:"logging" json:"logging"`
+}
+
 // Default configuration values
 const (
 	DefaultServerHost    = "0.0.0.0"
