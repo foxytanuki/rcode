@@ -156,6 +156,20 @@ func (sm *ServiceManager) startDarwin() error {
 		return fmt.Errorf("service not installed. Run 'rcode-server install-service' first")
 	}
 
+	isLoaded, err := sm.statusDarwin()
+	if err != nil {
+		return fmt.Errorf("failed to check service status: %w", err)
+	}
+	if !isLoaded {
+		cmd := exec.Command("launchctl", "load", plistPath) // #nosec G204 -- plistPath is constructed from user home directory
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to load service: %w", err)
+		}
+
+		fmt.Println("Service started successfully.")
+		return nil
+	}
+
 	cmd := exec.Command("launchctl", "start", "com.foxytanuki.rcode-server")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to start service: %w", err)
