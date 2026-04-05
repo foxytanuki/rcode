@@ -5,6 +5,9 @@ BINARY_NAME_SERVER=rcode-server
 BINARY_NAME_CLIENT=rcode
 BUILD_DIR=bin
 INSTALL_DIR=/usr/local/bin
+UNAME_S := $(shell uname -s)
+LAUNCH_AGENT_LABEL=com.foxytanuki.rcode-server
+LAUNCH_AGENT_PLIST=$(HOME)/Library/LaunchAgents/$(LAUNCH_AGENT_LABEL).plist
 
 # Version info from git
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -166,9 +169,18 @@ require-sudo:
 ## install: Install binaries to system (requires sudo)
 install: build require-sudo
 	@echo "Installing binaries to $(INSTALL_DIR)..."
+	@was_loaded=0; \
+	if [ "$(UNAME_S)" = "Darwin" ] && launchctl print gui/$$(id -u)/$(LAUNCH_AGENT_LABEL) >/dev/null 2>&1; then \
+		was_loaded=1; \
+		launchctl bootout gui/$$(id -u) "$(LAUNCH_AGENT_PLIST)" >/dev/null 2>&1 || true; \
+	fi; \
 	sudo mkdir -p $(INSTALL_DIR)
 	sudo cp $(BUILD_DIR)/$(BINARY_NAME_SERVER) $(INSTALL_DIR)/
 	sudo cp $(BUILD_DIR)/$(BINARY_NAME_CLIENT) $(INSTALL_DIR)/
+	if [ "$$was_loaded" -eq 1 ]; then \
+		launchctl bootstrap gui/$$(id -u) "$(LAUNCH_AGENT_PLIST)" >/dev/null 2>&1 || true; \
+		launchctl kickstart -k gui/$$(id -u)/$(LAUNCH_AGENT_LABEL) >/dev/null 2>&1 || true; \
+	fi
 	@echo "Installation complete"
 
 ## uninstall: Uninstall binaries from system (requires sudo)
@@ -227,6 +239,9 @@ run-hooks:
 ## install-service: Install rcode-server as a system service
 install-service: build-server require-sudo
 	@echo "Installing rcode-server as a system service..."
+	@if [ "$(UNAME_S)" = "Darwin" ] && launchctl print gui/$$(id -u)/$(LAUNCH_AGENT_LABEL) >/dev/null 2>&1; then \
+		launchctl bootout gui/$$(id -u) "$(LAUNCH_AGENT_PLIST)" >/dev/null 2>&1 || true; \
+	fi
 	@sudo mkdir -p $(INSTALL_DIR)
 	@sudo cp $(BUILD_DIR)/$(BINARY_NAME_SERVER) $(INSTALL_DIR)/
 	@$(INSTALL_DIR)/$(BINARY_NAME_SERVER) -install-service
