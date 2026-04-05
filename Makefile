@@ -170,15 +170,21 @@ require-sudo:
 install: build require-sudo
 	@echo "Installing binaries to $(INSTALL_DIR)..."
 	@was_loaded=0; \
-	if [ "$(UNAME_S)" = "Darwin" ] && launchctl print gui/$$(id -u)/$(LAUNCH_AGENT_LABEL) >/dev/null 2>&1; then \
-		was_loaded=1; \
-		launchctl bootout gui/$$(id -u) "$(LAUNCH_AGENT_PLIST)" >/dev/null 2>&1 || true; \
+	plist_exists=0; \
+	if [ "$(UNAME_S)" = "Darwin" ] && [ -f "$(LAUNCH_AGENT_PLIST)" ]; then \
+		plist_exists=1; \
+		if launchctl print gui/$$(id -u)/$(LAUNCH_AGENT_LABEL) >/dev/null 2>&1; then \
+			was_loaded=1; \
+			launchctl bootout gui/$$(id -u) "$(LAUNCH_AGENT_PLIST)" >/dev/null 2>&1 || true; \
+		fi; \
 	fi; \
 	sudo mkdir -p $(INSTALL_DIR); \
 	sudo cp $(BUILD_DIR)/$(BINARY_NAME_SERVER) $(INSTALL_DIR)/; \
 	sudo cp $(BUILD_DIR)/$(BINARY_NAME_CLIENT) $(INSTALL_DIR)/; \
-	if [ "$$was_loaded" -eq 1 ]; then \
-		launchctl bootstrap gui/$$(id -u) "$(LAUNCH_AGENT_PLIST)" >/dev/null 2>&1 || true; \
+	if [ "$(UNAME_S)" = "Darwin" ] && [ "$$plist_exists" -eq 1 ]; then \
+		$(INSTALL_DIR)/$(BINARY_NAME_SERVER) service install >/dev/null; \
+	fi; \
+	if [ "$(UNAME_S)" = "Darwin" ] && [ "$$was_loaded" -eq 1 ]; then \
 		launchctl kickstart -k gui/$$(id -u)/$(LAUNCH_AGENT_LABEL) >/dev/null 2>&1 || true; \
 	fi
 	@echo "Installation complete"

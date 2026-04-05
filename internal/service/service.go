@@ -115,15 +115,12 @@ func (sm *ServiceManager) installDarwin() error {
 		return fmt.Errorf("failed to write plist file: %w", err)
 	}
 
-	// Load the service
-	cmd := exec.Command("launchctl", "load", plistPath) // #nosec G204 -- plistPath is constructed from user home directory
+	// Reload the service definition so launchd picks up plist changes.
+	domain := fmt.Sprintf("gui/%d", os.Getuid())
+	_ = exec.Command("launchctl", "bootout", domain, plistPath).Run() // #nosec G204 -- plistPath is constructed from user home directory
+	cmd := exec.Command("launchctl", "bootstrap", domain, plistPath)  // #nosec G204 -- plistPath is constructed from user home directory
 	if err := cmd.Run(); err != nil {
-		// If already loaded, try to unload first
-		_ = exec.Command("launchctl", "unload", plistPath).Run() // #nosec G204 -- plistPath is constructed from user home directory
-		cmd = exec.Command("launchctl", "load", plistPath)       // #nosec G204 -- plistPath is constructed from user home directory
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("failed to load service: %w", err)
-		}
+		return fmt.Errorf("failed to bootstrap service: %w", err)
 	}
 
 	fmt.Printf("Service installed successfully at %s\n", plistPath)
@@ -339,7 +336,7 @@ func (sm *ServiceManager) generateDarwinPlist(binaryPath string) string {
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>PATH</key>
-		<string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
 	</dict>
 </dict>
 </plist>`, argsXML, sm.userHome, sm.userHome)
