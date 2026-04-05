@@ -174,9 +174,9 @@ install: build require-sudo
 		was_loaded=1; \
 		launchctl bootout gui/$$(id -u) "$(LAUNCH_AGENT_PLIST)" >/dev/null 2>&1 || true; \
 	fi; \
-	sudo mkdir -p $(INSTALL_DIR)
-	sudo cp $(BUILD_DIR)/$(BINARY_NAME_SERVER) $(INSTALL_DIR)/
-	sudo cp $(BUILD_DIR)/$(BINARY_NAME_CLIENT) $(INSTALL_DIR)/
+	sudo mkdir -p $(INSTALL_DIR); \
+	sudo cp $(BUILD_DIR)/$(BINARY_NAME_SERVER) $(INSTALL_DIR)/; \
+	sudo cp $(BUILD_DIR)/$(BINARY_NAME_CLIENT) $(INSTALL_DIR)/; \
 	if [ "$$was_loaded" -eq 1 ]; then \
 		launchctl bootstrap gui/$$(id -u) "$(LAUNCH_AGENT_PLIST)" >/dev/null 2>&1 || true; \
 		launchctl kickstart -k gui/$$(id -u)/$(LAUNCH_AGENT_LABEL) >/dev/null 2>&1 || true; \
