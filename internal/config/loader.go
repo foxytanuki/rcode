@@ -211,7 +211,7 @@ func autoMigrateConfigFile(configPath string, config *ClientConfig, warnings []M
 	}
 
 	// Write backup
-	if err := os.WriteFile(backupPath, originalData, 0o600); err != nil {
+	if err := os.WriteFile(backupPath, originalData, 0o600); err != nil { // #nosec G306,G703 -- backupPath is derived from the local config file path and kept owner-only
 		return fmt.Errorf("failed to create backup: %w", err)
 	}
 

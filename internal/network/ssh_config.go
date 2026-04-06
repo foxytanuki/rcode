@@ -20,7 +20,7 @@ func ResolveSSHHostAlias(host string) string {
 	}
 
 	configPath := filepath.Join(homeDir, ".ssh", "config")
-	file, err := os.Open(configPath)
+	file, err := os.Open(configPath) // #nosec G304 -- configPath is derived from the current user's home directory
 	if err != nil {
 		return host
 	}

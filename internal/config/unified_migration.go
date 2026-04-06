@@ -101,7 +101,7 @@ func loadServerConfigIfExists(clientPath, serverPath string) (*ServerConfigFile,
 		return nil, false, nil
 	}
 
-	data, err := os.ReadFile(clientPath)
+	data, err := os.ReadFile(clientPath) // #nosec G304 -- clientPath is a caller-provided config path, not untrusted network input
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -126,11 +126,11 @@ func backupFile(path string) (string, error) {
 		backupPath = fmt.Sprintf("%s.bak.%d", path, i)
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path points to a local config file selected for migration
 	if err != nil {
 		return "", fmt.Errorf("failed to read config for backup: %w", err)
 	}
-	if err := os.WriteFile(backupPath, data, 0o600); err != nil {
+	if err := os.WriteFile(backupPath, data, 0o600); err != nil { // #nosec G306,G703 -- backupPath is derived from the trusted config path and created with owner-only permissions
 		return "", fmt.Errorf("failed to write backup: %w", err)
 	}
 
