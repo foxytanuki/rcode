@@ -188,7 +188,9 @@ func TestHandleOpenEditorResolvesSSHAlias(t *testing.T) {
 	t.Setenv("HOME", homeDir)
 
 	server := createTestServer()
-	server.editor.RemoveEditor("test-editor")
+	if err := server.editor.RemoveEditor("test-editor"); err != nil {
+		t.Fatalf("RemoveEditor() error = %v", err)
+	}
 	if err := server.editor.AddEditor(config.EditorConfig{
 		Name:    "test-editor",
 		Command: "printf ssh-remote+{user}@{host} {path}",

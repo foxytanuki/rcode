@@ -56,7 +56,7 @@ logging:
 		t.Fatalf("server config should be removed after migration, stat err = %v", err)
 	}
 
-	data, err := os.ReadFile(clientPath)
+	data, err := os.ReadFile(clientPath) // #nosec G304 -- clientPath points to the temp config file created by this test
 	if err != nil {
 		t.Fatalf("ReadFile(unified) error = %v", err)
 	}

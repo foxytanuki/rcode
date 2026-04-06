@@ -25,15 +25,18 @@ func TestStartDarwinLoadsInstalledServiceWhenUnloaded(t *testing.T) {
 		"  start) exit 3 ;;\n" +
 		"esac\n" +
 		"exit 0\n"
-	if err := os.WriteFile(launchctlPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(launchctlPath, []byte(script), 0o600); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
+	}
+	if err := os.Chmod(launchctlPath, 0o755); err != nil { // #nosec G302 -- test stub must be executable to simulate launchctl
+		t.Fatalf("Chmod() error = %v", err)
 	}
 
 	t.Setenv("PATH", tempDir+":"+os.Getenv("PATH"))
 	t.Setenv("LAUNCHCTL_LOG", launchctlLog)
 
 	plistPath := filepath.Join(tempDir, "Library", "LaunchAgents", "com.foxytanuki.rcode-server.plist")
-	if err := os.MkdirAll(filepath.Dir(plistPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(plistPath), 0o700); err != nil {
 		t.Fatalf("MkdirAll() error = %v", err)
 	}
 	if err := os.WriteFile(plistPath, []byte("plist"), 0600); err != nil {
@@ -46,7 +49,7 @@ func TestStartDarwinLoadsInstalledServiceWhenUnloaded(t *testing.T) {
 		t.Fatalf("startDarwin() error = %v", err)
 	}
 
-	logData, err := os.ReadFile(launchctlLog)
+	logData, err := os.ReadFile(launchctlLog) // #nosec G304 -- launchctlLog is created inside this test's temp directory
 	if err != nil {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
@@ -85,13 +88,19 @@ func TestInstallDarwinReloadsServiceWithBootoutBootstrap(t *testing.T) {
 		"  bootstrap) exit 0 ;;\n" +
 		"esac\n" +
 		"exit 1\n"
-	if err := os.WriteFile(launchctlPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(launchctlPath, []byte(script), 0o600); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
+	}
+	if err := os.Chmod(launchctlPath, 0o755); err != nil { // #nosec G302 -- test stub must be executable to simulate launchctl
+		t.Fatalf("Chmod() error = %v", err)
 	}
 
 	binaryPath := filepath.Join(tempDir, "rcode-server")
-	if err := os.WriteFile(binaryPath, []byte("#!/bin/sh\nexit 0\n"), 0755); err != nil {
+	if err := os.WriteFile(binaryPath, []byte("#!/bin/sh\nexit 0\n"), 0o600); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
+	}
+	if err := os.Chmod(binaryPath, 0o755); err != nil { // #nosec G302 -- test binary must be executable for installDarwin
+		t.Fatalf("Chmod() error = %v", err)
 	}
 
 	t.Setenv("PATH", tempDir+":"+os.Getenv("PATH"))
@@ -104,7 +113,7 @@ func TestInstallDarwinReloadsServiceWithBootoutBootstrap(t *testing.T) {
 	}
 
 	plistPath := filepath.Join(tempDir, "Library", "LaunchAgents", "com.foxytanuki.rcode-server.plist")
-	logData, err := os.ReadFile(launchctlLog)
+	logData, err := os.ReadFile(launchctlLog) // #nosec G304 -- launchctlLog is created inside this test's temp directory
 	if err != nil {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
