@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -170,6 +172,60 @@ func TestHandleOpenEditor(t *testing.T) {
 				t.Errorf("handleOpenEditor() status = %v, want %v", rec.Code, tt.wantStatus)
 			}
 		})
+	}
+}
+
+func TestHandleOpenEditorResolvesSSHAlias(t *testing.T) {
+	homeDir := t.TempDir()
+	sshDir := homeDir + "/.ssh"
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	configData := []byte("Host ws01\n  User foxy\n  HostName 192.168.100.20\n")
+	if err := os.WriteFile(sshDir+"/config", configData, 0600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	t.Setenv("HOME", homeDir)
+
+	server := createTestServer()
+	server.editor.RemoveEditor("test-editor")
+	if err := server.editor.AddEditor(config.EditorConfig{
+		Name:    "test-editor",
+		Command: "code --remote ssh-remote+{user}@{host} {path}",
+		Default: true,
+	}); err != nil {
+		t.Fatalf("AddEditor() error = %v", err)
+	}
+	request := api.OpenRequest{
+		Path:   "/home/user/project",
+		Editor: "test-editor",
+		User:   "foxy",
+		Host:   "192.168.100.20",
+	}
+	body, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/open-editor", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	server.handleOpenEditor(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("handleOpenEditor() status = %v, want %v", rec.Code, http.StatusOK)
+	}
+
+	var resp api.OpenResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("Decode() error = %v", err)
+	}
+	if !strings.Contains(resp.Command, "ssh-remote+ws01") {
+		t.Fatalf("Command = %q, want alias host", resp.Command)
+	}
+	if strings.Contains(resp.Command, "ssh-remote+foxy@ws01") {
+		t.Fatalf("Command = %q, want alias host", resp.Command)
 	}
 }
 

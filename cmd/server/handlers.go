@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/foxytanuki/rcode/internal/editor"
+	"github.com/foxytanuki/rcode/internal/network"
 	"github.com/foxytanuki/rcode/internal/version"
 	"github.com/foxytanuki/rcode/pkg/api"
 )
@@ -110,10 +112,12 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	resolvedHost := network.ResolveSSHHostAlias(req.Host)
+
 	// Build template variables and render command
 	vars := editor.TemplateVars{
 		User: req.User,
-		Host: req.Host,
+		Host: resolvedHost,
 		Path: req.Path,
 	}
 
@@ -127,6 +131,7 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 		s.respondError(w, err, http.StatusInternalServerError, "")
 		return
 	}
+	command = normalizeRemoteAuthority(command, req.User, req.Host, resolvedHost)
 
 	// Execute the command
 	if err := editor.ExecuteDetached(command, s.log); err != nil {
@@ -154,6 +159,16 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 	response.SetTimestamp()
 
 	s.respondJSON(w, http.StatusOK, response)
+}
+
+func normalizeRemoteAuthority(command, user, originalHost, resolvedHost string) string {
+	if user == "" || originalHost == resolvedHost {
+		return command
+	}
+
+	oldAuthority := "ssh-remote+" + user + "@" + resolvedHost
+	newAuthority := "ssh-remote+" + resolvedHost
+	return strings.ReplaceAll(command, oldAuthority, newAuthority)
 }
 
 // respondJSON sends a JSON response
