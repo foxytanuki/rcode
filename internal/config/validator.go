@@ -98,11 +98,33 @@ func ValidateServerConfig(config *ServerConfigFile) error {
 				Message: "editor name cannot be empty",
 			})
 		}
-		if editor.Command == "" {
+
+		typeValue := editor.Type
+		if typeValue == "" {
+			typeValue = EditorTypeCommand
+		}
+		if typeValue != EditorTypeCommand && typeValue != EditorTypeBrowser {
 			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("editors[%d].command", i),
-				Message: "editor command cannot be empty",
+				Field:   fmt.Sprintf("editors[%d].type", i),
+				Message: "editor type must be command or browser",
 			})
+		}
+
+		switch typeValue {
+		case EditorTypeCommand:
+			if editor.Command == "" {
+				errors = append(errors, ValidationError{
+					Field:   fmt.Sprintf("editors[%d].command", i),
+					Message: "editor command cannot be empty",
+				})
+			}
+		case EditorTypeBrowser:
+			if editor.URL == "" {
+				errors = append(errors, ValidationError{
+					Field:   fmt.Sprintf("editors[%d].url", i),
+					Message: "editor url cannot be empty",
+				})
+			}
 		}
 
 		// Check for duplicate names
@@ -119,12 +141,25 @@ func ValidateServerConfig(config *ServerConfigFile) error {
 			defaultCount++
 		}
 
-		// Validate command template
-		if err := validateCommandTemplate(editor.Command); err != nil {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("editors[%d].command", i),
-				Message: err.Error(),
-			})
+		// Validate templates
+		if typeValue == EditorTypeBrowser {
+			if editor.URL != "" {
+				if err := validateCommandTemplate(editor.URL); err != nil {
+					errors = append(errors, ValidationError{
+						Field:   fmt.Sprintf("editors[%d].url", i),
+						Message: err.Error(),
+					})
+				}
+			}
+		} else {
+			if editor.Command != "" {
+				if err := validateCommandTemplate(editor.Command); err != nil {
+					errors = append(errors, ValidationError{
+						Field:   fmt.Sprintf("editors[%d].command", i),
+						Message: err.Error(),
+					})
+				}
+			}
 		}
 	}
 

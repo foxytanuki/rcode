@@ -36,6 +36,13 @@ func TestNewManager(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "browser config",
+			configs: []config.EditorConfig{
+				{Name: "code-server", Type: config.EditorTypeBrowser, URL: "http://{host}:8080/?folder={path}"},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -54,6 +61,48 @@ func TestNewManager(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestNewEditor_DefaultType(t *testing.T) {
+	editor, err := NewEditor(config.EditorConfig{
+		Name:    "cmd-editor",
+		Command: "editor {path}",
+	})
+	if err != nil {
+		t.Fatalf("NewEditor() error = %v, want nil", err)
+	}
+
+	if editor.Type != config.EditorTypeCommand {
+		t.Errorf("NewEditor() type = %v, want %v", editor.Type, config.EditorTypeCommand)
+	}
+	if editor.Template == nil {
+		t.Error("NewEditor() should parse command template")
+	}
+}
+
+func TestNewEditor_Browser(t *testing.T) {
+	editor, err := NewEditor(config.EditorConfig{
+		Name:    "code-server",
+		Type:    config.EditorTypeBrowser,
+		URL:     "http://{host}:8080/?folder={path}",
+		Default: true,
+	})
+	if err != nil {
+		t.Fatalf("NewEditor() error = %v, want nil", err)
+	}
+
+	if editor.Type != config.EditorTypeBrowser {
+		t.Errorf("NewEditor() type = %v, want %v", editor.Type, config.EditorTypeBrowser)
+	}
+	if editor.URL != "http://{host}:8080/?folder={path}" {
+		t.Errorf("NewEditor() URL = %v, want %v", editor.URL, "http://{host}:8080/?folder={path}")
+	}
+	if editor.URLTemplate == nil {
+		t.Error("NewEditor() should parse URL template")
+	}
+	if editor.Template != nil {
+		t.Error("NewEditor() should not parse command template for browser editor")
 	}
 }
 
@@ -249,6 +298,7 @@ func TestManager_ListEditors(t *testing.T) {
 
 func TestManager_IsAvailable(t *testing.T) {
 	manager := createTestManager()
+	browserManager := createBrowserTestManager()
 
 	// Mock availability for testing
 	manager.availability["editor1"] = true
@@ -257,16 +307,18 @@ func TestManager_IsAvailable(t *testing.T) {
 	tests := []struct {
 		name      string
 		editor    string
+		manager   *Manager
 		available bool
 	}{
-		{"available editor", "editor1", true},
-		{"unavailable editor", "editor2", false},
-		{"unknown editor", "nonexistent", false},
+		{"available editor", "editor1", manager, true},
+		{"unavailable editor", "editor2", manager, false},
+		{"unknown editor", "nonexistent", manager, false},
+		{"browser editor always available", "browser", browserManager, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			available := manager.IsAvailable(tt.editor)
+			available := tt.manager.IsAvailable(tt.editor)
 			if available != tt.available {
 				t.Errorf("IsAvailable(%v) = %v, want %v", tt.editor, available, tt.available)
 			}
@@ -299,6 +351,34 @@ func TestValidateEditor(t *testing.T) {
 			name: "missing command",
 			config: config.EditorConfig{
 				Name: "test",
+				Type: config.EditorTypeCommand,
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing browser URL",
+			config: config.EditorConfig{
+				Name: "browser",
+				Type: config.EditorTypeBrowser,
+				URL:  "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid browser",
+			config: config.EditorConfig{
+				Name: "browser",
+				Type: config.EditorTypeBrowser,
+				URL:  "https://{host}?folder={path}",
+			},
+			wantErr: false,
+		},
+		{
+			name: "unsupported type",
+			config: config.EditorConfig{
+				Name:    "unsupported",
+				Type:    "desktop",
+				Command: "editor {path}",
 			},
 			wantErr: true,
 		},
@@ -333,6 +413,15 @@ func createTestManager() *Manager {
 	configs := []config.EditorConfig{
 		{Name: "editor1", Command: "cmd1 {path}", Default: true},
 		{Name: "editor2", Command: "cmd2 {path}"},
+	}
+
+	manager, _ := NewManager(configs, createTestLogger())
+	return manager
+}
+
+func createBrowserTestManager() *Manager {
+	configs := []config.EditorConfig{
+		{Name: "browser", Type: config.EditorTypeBrowser, URL: "http://{host}:8080/?folder={path}"},
 	}
 
 	manager, _ := NewManager(configs, createTestLogger())

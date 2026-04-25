@@ -47,7 +47,9 @@ func (s *Server) handleEditors(w http.ResponseWriter, r *http.Request) {
 	for _, e := range editorList {
 		info := api.EditorInfo{
 			Name:      e.Name,
+			Type:      string(e.Type),
 			Command:   e.Command,
+			URL:       e.URL,
 			Available: e.Available,
 			Default:   e.Default,
 		}
@@ -114,34 +116,69 @@ func (s *Server) handleOpenEditor(w http.ResponseWriter, r *http.Request) {
 
 	resolvedHost := network.ResolveSSHHostAlias(req.Host)
 
-	// Build template variables and render command
+	// Build template variables and render template
 	vars := editor.TemplateVars{
 		User: req.User,
 		Host: resolvedHost,
 		Path: req.Path,
 	}
 
-	command, err := e.Template.Render(vars)
-	if err != nil {
-		s.log.Error("Failed to render editor command",
-			"error", err,
-			"editor", e.Name,
-			"path", req.Path,
-		)
-		s.respondError(w, err, http.StatusInternalServerError, "")
-		return
-	}
-	command = normalizeRemoteAuthority(command, req.User, req.Host, resolvedHost)
+	var command string
 
-	// Execute the command
-	if err := editor.ExecuteDetached(command, s.log); err != nil {
-		s.log.Error("Failed to execute editor command",
-			"error", err,
-			"editor", e.Name,
-			"command", command,
-		)
-		s.respondError(w, err, http.StatusInternalServerError, "")
-		return
+	if e.Type == "browser" {
+		if e.URLTemplate == nil {
+			s.log.Error("Missing URL template for browser editor",
+				"editor", e.Name,
+			)
+			s.respondError(w, editor.ErrInvalidEditor, http.StatusInternalServerError, "missing browser URL template")
+			return
+		}
+
+		command, err = e.URLTemplate.Render(vars)
+		if err != nil {
+			s.log.Error("Failed to render editor URL",
+				"error", err,
+				"editor", e.Name,
+				"path", req.Path,
+			)
+			s.respondError(w, err, http.StatusInternalServerError, "")
+			return
+		}
+
+		// Execute browser open
+		if err := editor.OpenBrowser(command, s.log); err != nil {
+			s.log.Error("Failed to open browser URL",
+				"error", err,
+				"editor", e.Name,
+				"url", command,
+			)
+			s.respondError(w, err, http.StatusInternalServerError, "")
+			return
+		}
+	} else {
+		command, err = e.Template.Render(vars)
+		if err != nil {
+			s.log.Error("Failed to render editor command",
+				"error", err,
+				"editor", e.Name,
+				"path", req.Path,
+			)
+			s.respondError(w, err, http.StatusInternalServerError, "")
+			return
+		}
+
+		command = normalizeRemoteAuthority(command, req.User, req.Host, resolvedHost)
+
+		// Execute the command
+		if err := editor.ExecuteDetached(command, s.log); err != nil {
+			s.log.Error("Failed to execute editor command",
+				"error", err,
+				"editor", e.Name,
+				"command", command,
+			)
+			s.respondError(w, err, http.StatusInternalServerError, "")
+			return
+		}
 	}
 
 	editorName := req.Editor

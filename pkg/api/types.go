@@ -26,7 +26,9 @@ type OpenResponse struct {
 // EditorInfo represents information about an available editor
 type EditorInfo struct {
 	Name      string `json:"name" yaml:"name"`           // Editor name (e.g., "cursor", "vscode")
-	Command   string `json:"command" yaml:"command"`     // Command template
+	Type      string `json:"type" yaml:"type"`           // Editor type: command or browser
+	Command   string `json:"command" yaml:"command"`     // Command template (command editors)
+	URL       string `json:"url" yaml:"url"`             // URL template (browser editors)
 	Available bool   `json:"available" yaml:"available"` // Whether the editor is available
 	Default   bool   `json:"default" yaml:"default"`     // Whether this is the default editor
 }

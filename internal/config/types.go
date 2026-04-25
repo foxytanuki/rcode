@@ -4,12 +4,24 @@ import (
 	"time"
 )
 
+// EditorType represents the type of editor
+type EditorType string
+
+const (
+	// EditorTypeCommand opens a local executable editor.
+	EditorTypeCommand EditorType = "command"
+	// EditorTypeBrowser opens a browser-based editor URL.
+	EditorTypeBrowser EditorType = "browser"
+)
+
 // EditorConfig represents configuration for a single editor
 type EditorConfig struct {
-	Name      string `yaml:"name" json:"name"`           // Editor name (e.g., "cursor", "vscode")
-	Command   string `yaml:"command" json:"command"`     // Command template with placeholders
-	Default   bool   `yaml:"default" json:"default"`     // Whether this is the default editor
-	Available bool   `yaml:"available" json:"available"` // Whether the editor is available on the system
+	Name      string     `yaml:"name" json:"name"`                           // Editor name (e.g., "cursor", "vscode")
+	Type      EditorType `yaml:"type,omitempty" json:"type,omitempty"`       // Editor type: command (default) or browser
+	Command   string     `yaml:"command,omitempty" json:"command,omitempty"` // Command template with placeholders (for command type)
+	URL       string     `yaml:"url,omitempty" json:"url,omitempty"`         // URL template with placeholders (for browser type)
+	Default   bool       `yaml:"default" json:"default"`                     // Whether this is the default editor
+	Available bool       `yaml:"available" json:"available"`                 // Whether the editor is available on the system
 }
 
 // ServerConfig represents server-specific configuration

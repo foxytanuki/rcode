@@ -28,7 +28,8 @@ func TestStartDarwinLoadsInstalledServiceWhenUnloaded(t *testing.T) {
 	if err := os.WriteFile(launchctlPath, []byte(script), 0o600); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
-	if err := os.Chmod(launchctlPath, 0o755); err != nil { // #nosec G302 -- test stub must be executable to simulate launchctl
+	// #nosec G302 -- test stub must be executable to simulate launchctl.
+	if err := os.Chmod(launchctlPath, 0o755); err != nil {
 		t.Fatalf("Chmod() error = %v", err)
 	}
 
@@ -91,7 +92,8 @@ func TestInstallDarwinReloadsServiceWithBootoutBootstrap(t *testing.T) {
 	if err := os.WriteFile(launchctlPath, []byte(script), 0o600); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
-	if err := os.Chmod(launchctlPath, 0o755); err != nil { // #nosec G302 -- test stub must be executable to simulate launchctl
+	// #nosec G302 -- test stub must be executable to simulate launchctl.
+	if err := os.Chmod(launchctlPath, 0o755); err != nil {
 		t.Fatalf("Chmod() error = %v", err)
 	}
 
@@ -99,7 +101,8 @@ func TestInstallDarwinReloadsServiceWithBootoutBootstrap(t *testing.T) {
 	if err := os.WriteFile(binaryPath, []byte("#!/bin/sh\nexit 0\n"), 0o600); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
-	if err := os.Chmod(binaryPath, 0o755); err != nil { // #nosec G302 -- test binary must be executable for installDarwin
+	// #nosec G302 -- test binary must be executable for installDarwin.
+	if err := os.Chmod(binaryPath, 0o755); err != nil {
 		t.Fatalf("Chmod() error = %v", err)
 	}
 

@@ -34,11 +34,14 @@ type Manager struct {
 
 // Editor represents a single editor configuration
 type Editor struct {
-	Name      string
-	Command   string
-	Default   bool
-	Available bool
-	Template  *Template
+	Name        string
+	Command     string
+	Type        config.EditorType
+	URL         string
+	Default     bool
+	Available   bool
+	Template    *Template
+	URLTemplate *Template
 }
 
 // NewManager creates a new editor manager
@@ -95,22 +98,53 @@ func NewEditor(cfg config.EditorConfig) (*Editor, error) {
 		return nil, fmt.Errorf("%w: name is required", ErrInvalidEditor)
 	}
 
-	if cfg.Command == "" {
-		return nil, fmt.Errorf("%w: command is required", ErrInvalidEditor)
+	typeValue := cfg.Type
+	if typeValue == "" {
+		typeValue = config.EditorTypeCommand
 	}
 
-	template, err := NewTemplate(cfg.Command)
-	if err != nil {
-		return nil, fmt.Errorf("%w: invalid command template: %v", ErrInvalidEditor, err)
-	}
+	switch typeValue {
+	case config.EditorTypeCommand:
+		if cfg.Command == "" {
+			return nil, fmt.Errorf("%w: command is required for command editor", ErrInvalidEditor)
+		}
 
-	return &Editor{
-		Name:      cfg.Name,
-		Command:   cfg.Command,
-		Default:   cfg.Default,
-		Available: cfg.Available,
-		Template:  template,
-	}, nil
+		template, err := NewTemplate(cfg.Command)
+		if err != nil {
+			return nil, fmt.Errorf("%w: invalid command template: %v", ErrInvalidEditor, err)
+		}
+
+		return &Editor{
+			Name:      cfg.Name,
+			Type:      typeValue,
+			Command:   cfg.Command,
+			Default:   cfg.Default,
+			Available: cfg.Available,
+			Template:  template,
+		}, nil
+
+	case config.EditorTypeBrowser:
+		if cfg.URL == "" {
+			return nil, fmt.Errorf("%w: url is required for browser editor", ErrInvalidEditor)
+		}
+
+		urlTemplate, err := NewTemplate(cfg.URL)
+		if err != nil {
+			return nil, fmt.Errorf("%w: invalid url template: %v", ErrInvalidEditor, err)
+		}
+
+		return &Editor{
+			Name:        cfg.Name,
+			Type:        typeValue,
+			URL:         cfg.URL,
+			Default:     cfg.Default,
+			Available:   cfg.Available,
+			URLTemplate: urlTemplate,
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("%w: type must be %q or %q", ErrInvalidEditor, config.EditorTypeCommand, config.EditorTypeBrowser)
+	}
 }
 
 // GetEditor returns an editor by name
@@ -237,6 +271,14 @@ func (m *Manager) RefreshAvailability() {
 
 // checkAvailability checks if an editor is available
 func (m *Manager) checkAvailability(editor *Editor) bool {
+	if editor.Type == config.EditorTypeBrowser {
+		return true
+	}
+
+	if editor.Template == nil {
+		return false
+	}
+
 	// Extract the executable from the command
 	executable := m.extractExecutable(editor.Command)
 	if executable == "" {
@@ -351,13 +393,31 @@ func ValidateEditor(cfg config.EditorConfig) error {
 		return fmt.Errorf("%w: name is required", ErrInvalidEditor)
 	}
 
-	if cfg.Command == "" {
-		return fmt.Errorf("%w: command is required", ErrInvalidEditor)
+	typeValue := cfg.Type
+	if typeValue == "" {
+		typeValue = config.EditorTypeCommand
 	}
 
-	// Validate command template
-	if _, err := NewTemplate(cfg.Command); err != nil {
-		return fmt.Errorf("%w: invalid command template: %v", ErrInvalidEditor, err)
+	switch typeValue {
+	case config.EditorTypeCommand:
+		if cfg.Command == "" {
+			return fmt.Errorf("%w: command is required", ErrInvalidEditor)
+		}
+
+		if _, err := NewTemplate(cfg.Command); err != nil {
+			return fmt.Errorf("%w: invalid command template: %v", ErrInvalidEditor, err)
+		}
+
+	case config.EditorTypeBrowser:
+		if cfg.URL == "" {
+			return fmt.Errorf("%w: url is required", ErrInvalidEditor)
+		}
+
+		if _, err := NewTemplate(cfg.URL); err != nil {
+			return fmt.Errorf("%w: invalid url template: %v", ErrInvalidEditor, err)
+		}
+	default:
+		return fmt.Errorf("%w: type must be %q or %q", ErrInvalidEditor, config.EditorTypeCommand, config.EditorTypeBrowser)
 	}
 
 	return nil

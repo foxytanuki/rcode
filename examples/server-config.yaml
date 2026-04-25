@@ -49,6 +49,13 @@ editors:
     default: false
     available: true
 
+  # Browser-based code-server
+  - name: code-server
+    type: browser
+    url: "http://{host}:8080/?folder={path}"
+    default: false
+    available: true
+
 # Logging configuration
 logging:
   # Log level: debug, info, warn, error

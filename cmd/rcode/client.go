@@ -194,10 +194,20 @@ func (c *Client) ListEditors() error {
 		if editor.Default {
 			status = " (default)"
 		}
+		if editor.Type == "" {
+			editor.Type = "command"
+		}
+		if editor.Type == "browser" {
+			status += " [browser]"
+		}
 		if !editor.Available {
 			status += " [unavailable]"
 		}
 		fmt.Printf("  %s%s\n", editor.Name, status)
+		if editor.Type == "browser" && editor.URL != "" {
+			fmt.Printf("    URL: %s\n", editor.URL)
+			continue
+		}
 		fmt.Printf("    Command: %s\n", editor.Command)
 	}
 
@@ -247,7 +257,7 @@ func (c *Client) fetchEditors(host string) (*api.EditorsResponse, error) {
 }
 
 // GetManualCommand generates a manual command that can be run on the host.
-// It first tries to fetch the command template from the server.
+// It first tries to fetch the editor template from the server.
 // If the server is unreachable, it falls back to configured fallback editors.
 func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string {
 	// Use default editor if not specified
@@ -255,30 +265,31 @@ func (c *Client) GetManualCommand(path, editor string, sshInfo *SSHInfo) string 
 		editor = c.config.DefaultEditor
 	}
 
-	// Try to fetch editor command from server
-	editorCmd := c.fetchEditorCommand(editor)
+	// Try to fetch editor template from server
+	editorTemplate := c.fetchEditorTemplate(editor)
 
-	if editorCmd == "" {
+	if editorTemplate == "" {
 		// Fall back to configured fallback editors
 		if c.config.FallbackEditors != nil {
-			editorCmd = c.config.FallbackEditors[editor]
+			editorTemplate = c.config.FallbackEditors[editor]
 		}
 	}
 
-	if editorCmd == "" {
+	if editorTemplate == "" {
 		return ""
 	}
 
 	// Replace placeholders
-	cmd := strings.ReplaceAll(editorCmd, "{user}", sshInfo.User)
+	cmd := strings.ReplaceAll(editorTemplate, "{user}", sshInfo.User)
 	cmd = strings.ReplaceAll(cmd, "{host}", sshInfo.Host)
 	cmd = strings.ReplaceAll(cmd, "{path}", path)
 
 	return cmd
 }
 
-// fetchEditorCommand fetches the command template for a specific editor from the server
-func (c *Client) fetchEditorCommand(editorName string) string {
+// fetchEditorTemplate fetches the template for a specific editor from the server.
+// Browser editors prefer URL templates while command editors use command templates.
+func (c *Client) fetchEditorTemplate(editorName string) string {
 	var editors *api.EditorsResponse
 
 	err := c.withFallback(func(host string) error {
@@ -291,10 +302,19 @@ func (c *Client) fetchEditorCommand(editorName string) string {
 		return ""
 	}
 
-	// Find the editor command
+	// Find the editor template
 	for _, editor := range editors.Editors {
 		if editor.Name == editorName {
-			return editor.Command
+			if editor.Type == "browser" && editor.URL != "" {
+				return editor.URL
+			}
+			if editor.Type == "" {
+				editor.Type = "command"
+			}
+			if editor.Type == "command" && editor.Command != "" {
+				return editor.Command
+			}
+			return ""
 		}
 	}
 

@@ -340,6 +340,79 @@ func TestClient_GetManualCommand(t *testing.T) {
 	}
 }
 
+func TestClient_GetManualCommand_ServerTemplate(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/editors" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		resp := api.EditorsResponse{
+			Editors: []api.EditorInfo{
+				{
+					Name:    "code-server",
+					Type:    "browser",
+					URL:     "http://{host}:8080/?folder={path}",
+					Default: true,
+				},
+				{
+					Name:    "cursor",
+					Type:    "command",
+					Command: "cursor --remote ssh-remote+{user}@{host} {path}",
+				},
+			},
+		}
+		resp.SetTimestamp()
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatalf("Failed to encode response: %v", err)
+		}
+	}))
+	defer server.Close()
+
+	t.Run("browser template", func(t *testing.T) {
+		cfg := &config.ClientConfig{
+			Hosts: config.HostsConfig{
+				Server: config.ServerHostConfig{
+					Primary: server.URL[7:],
+				},
+			},
+			Network: config.ClientNetworkConfig{Timeout: 2 * time.Second},
+			FallbackEditors: config.FallbackEditorsConfig{
+				"code-server": "http://fallback/{path}",
+			},
+			Logging: config.LogConfig{Level: "error"},
+		}
+
+		client := NewClient(cfg, createTestLogger())
+		got := client.GetManualCommand("/repo", "code-server", &SSHInfo{User: "alice", Host: "remote"})
+		want := "http://remote:8080/?folder=/repo"
+		if got != want {
+			t.Errorf("GetManualCommand() = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("legacy editor type fallback", func(t *testing.T) {
+		cfg := &config.ClientConfig{
+			Hosts: config.HostsConfig{
+				Server: config.ServerHostConfig{
+					Primary: server.URL[7:],
+				},
+			},
+			Network: config.ClientNetworkConfig{Timeout: 2 * time.Second},
+			Logging: config.LogConfig{Level: "error"},
+		}
+
+		client := NewClient(cfg, createTestLogger())
+		got := client.GetManualCommand("/repo", "cursor", &SSHInfo{User: "alice", Host: "remote"})
+		want := "cursor --remote ssh-remote+alice@remote /repo"
+		if got != want {
+			t.Errorf("GetManualCommand() = %v, want %v", got, want)
+		}
+	})
+}
+
 func TestClient_Retry(t *testing.T) {
 	attempts := 0
 	maxAttempts := 3
